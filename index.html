@@ -86,13 +86,19 @@
     #feedback {min-height:24px;color:#ff9f0a;}
     #ipad-view {height:100dvh;}
     #qr-modal {position:fixed;min-height:100dvh;overflow:auto;}
-    .board-header {flex-wrap:wrap;gap:10px;}
+    .board-header {flex-wrap:wrap;gap:10px;padding-right:100px;}
+    dialog::backdrop {background:rgba(0,0,0,.75);}
+    #iphone-view>div:nth-child(2) {padding-right:95px;}
   </style>
 </head>
 <body>
+  <div id="mode-view" class="ctrl-box" style="width:92%;max-width:520px;margin:24px auto"><h1 style="font-size:25px;margin-bottom:16px">🀄 跑馬仔計分</h1><p style="margin-bottom:16px;color:#aaa">揀今次點樣使用</p><button class="btn-start" onclick="chooseMode(false)">iPad 睇分板</button><button class="btn-start" onclick="chooseMode(true)">iPhone 計分＋睇分板</button></div>
+  <button id="options-btn" class="opt-btn hidden" aria-label="開啟選項" onclick="openOptions()" style="position:fixed;right:max(10px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));z-index:110;min-height:44px;font-size:16px;padding:8px 12px">☰ 選項</button>
+  <dialog id="options-menu" style="margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:22px;width:min(92vw,440px);max-height:90dvh;overflow:auto"><h2>選項</h2><button class="reset-btn" onclick="zeroScores()" style="min-height:60px;font-size:19px">將計分重設至 0</button><p class="hint">四位玩家分數同抽水箱歸零，保留玩家名稱及玩法。</p><button class="opt-btn" style="width:100%;margin-top:16px" onclick="document.getElementById('options-menu').close()">返回</button><details style="margin-top:20px"><summary style="font-size:20px;padding:12px 0;cursor:pointer">自訂計分選項</summary><p class="hint">每家／單一付款者嘅金額如下。只影響之後嘅結算。</p><div id="rule-fields"></div><button id="save-rules" class="btn-start" onclick="saveRules()">儲存計分設定</button></details><p id="option-feedback" role="status"></p></dialog>
+
 
   <!-- 1. 開局設定介面 -->
-  <div id="setup-view">
+  <div id="setup-view" class="hidden">
     <div class="setup-title">🀄️ 跑馬仔設定</div>
     
     <div class="form-group">
@@ -145,6 +151,7 @@
 
   <!-- 3. iPhone 控制端 -->
   <div id="iphone-view" class="hidden">
+    <div id="phone-board" class="ctrl-box" style="margin-top:52px"><div class="ctrl-title">即時分數</div><div id="phone-scores" class="btn-group grid-4-btn"></div><p id="phone-pot" class="hint"></p></div>
     <div style="text-align: center; margin-bottom: 12px; font-size: 14px; color: #30d158; font-weight: bold;">
       <span id="phone-status">連線中…</span> · <span id="phone-mode-text">抽水版</span>
     </div>
@@ -176,6 +183,7 @@
 'use strict';
 const $=id=>document.getElementById(id), KEY='mahjong-v2';
 const RULES={win:20,horse:20,rake:10,ming:30,an:20,bu:10,rob:60,robHorse:60};
+let soloMode=false;
 let peer,conn,hostPeerId=new URLSearchParams(location.search).get('join'),isPhoneRole=!!hostPeerId;
 let state={version:2,revision:0,game:crypto.randomUUID(),isRake:true,names:['東家','南家','西家','北家'],scores:[0,0,0,0],pot:0,seen:[]};
 let currentAction='win',selectedPlayer=null,payer=null,horseCount=0,ready=false,pending=null,lastReply=Date.now(),retryAt=0;
@@ -185,33 +193,36 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e)
 function send(c,d){if(c?.open)c.send(d);}
 function broadcast(){persist();renderBoard();clients.forEach(c=>send(c,{type:'STATE',state}));}
 function calculate(s,a){
+ const rules={...RULES,...s.rules};
  if(!['win','ming','an','bu','rob'].includes(a.action)||!Number.isInteger(a.player)||a.player<0||a.player>3||!Number.isInteger(a.horses)||a.horses<0||a.horses>5||typeof a.kongWin!=='boolean')throw Error('結算資料有誤');
  const single=['ming','rob'].includes(a.action);
  if(single&&(!Number.isInteger(a.payer)||a.payer<0||a.payer>3||a.payer===a.player))throw Error('請揀另一位付款玩家');
  const delta=[0,0,0,0];let pot=0;
  const pay=(i,v)=>{delta[i]-=v;delta[a.player]+=v;};
  const all=v=>{for(let i=0;i<4;i++)if(i!==a.player)pay(i,v);};
- if(a.action==='ming')pay(a.payer,RULES.ming);
- if(a.action==='an')all(RULES.an);
- if(a.action==='bu')all(RULES.bu);
- if(a.action==='rob')pay(a.payer,RULES.rob+a.horses*RULES.robHorse);
+ if(a.action==='ming')pay(a.payer,rules.ming);
+ if(a.action==='an')all(rules.an);
+ if(a.action==='bu')all(rules.bu);
+ if(a.action==='rob')pay(a.payer,rules.rob+a.horses*rules.robHorse);
  const win=a.action==='win'||(['ming','an','bu'].includes(a.action)&&a.kongWin);
- if(win)all(RULES.win+a.horses*RULES.horse);
- if((win||a.action==='rob')&&s.isRake){pot=a.horses*RULES.rake;delta[a.player]-=pot;}
+ if(win)all(rules.win+a.horses*rules.horse);
+ if((win||a.action==='rob')&&s.isRake){pot=a.horses*rules.rake;delta[a.player]-=pot;}
  return {delta,pot};
 }
 function toggleRake(v){$('btn-mode-rake').classList.toggle('active',v);$('btn-mode-norake').classList.toggle('active',!v);$('setup-view').dataset.rake=String(v);}
 function settings(){return {names:[0,1,2,3].map(i=>$('p-name-'+i).value.trim().slice(0,40)||['東家','南家','西家','北家'][i]),isRake:$('setup-view').dataset.rake!=='false'};}
-function handleStart(){const config=settings();if(isPhoneRole){submitCommand({kind:'settings',config});}else{Object.assign(state,config);state.revision++;persist();$('setup-view').classList.add('hidden');$('ipad-view').classList.remove('hidden');renderBoard();initPeer();}}
+function handleStart(){const config=settings();if(soloMode){Object.assign(state,config);state.revision++;persist();ready=true;$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');$('options-btn').classList.remove('hidden');status('● 本機計分');renderControls();return;}if(isPhoneRole){submitCommand({kind:'settings',config});}else{Object.assign(state,config);state.revision++;persist();$('setup-view').classList.add('hidden');$('ipad-view').classList.remove('hidden');$('options-btn').classList.remove('hidden');renderBoard();initPeer();}}
 function renderBoard(){ $('board-mode-tag').textContent='跑馬仔計分板 · '+(state.isRake?'抽水版':'不抽水版');$('board-grid').className='grid-container '+(state.isRake?'grid-5':'grid-4');$('pot-card').classList.toggle('hidden',!state.isRake);$('pot-score').textContent='$'+state.pot;state.names.forEach((n,i)=>{$('disp-name-'+i).textContent=n;const el=$('score-'+i),v=state.scores[i];el.textContent=(v>0?'+':'')+v;el.className='player-score '+(v>0?'score-pos':v<0?'score-neg':'score-zero');});}
 function resetGame(){state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('iphone-view').classList.add('hidden');$('setup-view').classList.remove('hidden');}
 function setAction(a){currentAction=a;selectedPlayer=payer=null;horseCount=0;$('kong-win').checked=false;renderControls();}
 function renderControls(){
+ renderPhoneBoard();
  $('phone-mode-text').textContent=state.isRake?'抽水版':'不抽水版';
  document.querySelectorAll('.act-btn').forEach(b=>{b.classList.toggle('active',b.id==='act-'+currentAction);b.setAttribute('aria-pressed',String(b.id==='act-'+currentAction));});
  $('player-pick-label').textContent={win:'自摸玩家',ming:'明槓玩家',an:'暗槓玩家',bu:'補槓玩家',rob:'搶槓者'}[currentAction];
  const single=['ming','rob'].includes(currentAction),kong=['ming','an','bu'].includes(currentAction);
  $('payer-box').classList.toggle('hidden',!single);$('payer-label').textContent=currentAction==='rob'?'被搶者（包晒）':'被槓玩家（付 $30）';$('kong-box').classList.toggle('hidden',!kong);
+ const rules={...RULES,...state.rules};$('payer-label').textContent=currentAction==='rob'?'被搶者（包晒）':'被槓玩家（付 $'+rules.ming+'）';$('horse-box').querySelector('.ctrl-title').textContent=currentAction==='rob'?'中馬隻數（底數 $'+rules.rob+'；每馬 $'+rules.robHorse+'；'+(state.isRake?'每馬抽 $'+rules.rake:'不抽水')+'）':'中馬隻數（每家底數 $'+rules.win+'；每馬每家 $'+rules.horse+'；'+(state.isRake?'每馬抽 $'+rules.rake:'不抽水')+'）';
  const hasHorse=['win','rob'].includes(currentAction)||(kong&&$('kong-win').checked);$('horse-box').classList.toggle('hidden',!hasHorse);
  function picks(id,selected,callback){$(id).replaceChildren();state.names.forEach((n,i)=>{let b=document.createElement('button');b.type='button';b.textContent=n;b.className='opt-btn'+(selected===i?' active':'');b.setAttribute('aria-pressed',String(selected===i));b.disabled=id==='payer-buttons'&&i===selectedPlayer;b.onclick=()=>{callback(i);renderControls();};$(id).append(b);});}
  picks('player-buttons',selectedPlayer,i=>{selectedPlayer=i;if(payer===i)payer=null;});picks('payer-buttons',payer,i=>payer=i);
@@ -221,7 +232,7 @@ function renderControls(){
 }
 function selection(){return {action:currentAction,player:selectedPlayer,payer,horses:horseCount,kongWin:$('kong-win').checked};}
 function submitAction(){try{calculate(state,selection());submitCommand({kind:'action',...selection()});}catch(e){$('feedback').textContent=e.message;}}
-function submitCommand(data){if(!ready||pending)return;$('feedback').textContent='等緊 iPad 確認…';pending={type:'COMMAND',id:crypto.randomUUID(),game:state.game,revision:state.revision,...data};send(conn,pending);renderControls();}
+function submitCommand(data){if(!ready||pending)return;if(soloMode){const m={type:'COMMAND',id:crypto.randomUUID(),game:state.game,revision:state.revision,...data};pending=m;accept({open:true,send:receive},m);return;}$('feedback').textContent='等緊 iPad 確認…';pending={type:'COMMAND',id:crypto.randomUUID(),game:state.game,revision:state.revision,...data};send(conn,pending);renderControls();}
 function accept(c,m){
  if(!m||typeof m!=='object')return;
  if(m.type==='PING'){send(c,{type:'PONG'});return;}
@@ -230,13 +241,21 @@ function accept(c,m){
  if(state.seen.includes(m.id)){send(c,{type:'ACK',id:m.id,state});return;}
  if(typeof m.id!=='string'||m.id.length>100)return;
  if(m.game!==state.game||m.revision!==state.revision){send(c,{type:'REJECT',id:m.id,message:'分數或設定已更新，請核對後再送出',state});return;}
- try{if(m.kind==='action'){const r=calculate(state,m);state.scores=state.scores.map((v,i)=>v+r.delta[i]);state.pot+=r.pot;}else if(m.kind==='settings'){const q=m.config;if(!q||typeof q.isRake!=='boolean'||!Array.isArray(q.names)||q.names.length!==4||!q.names.every(n=>typeof n==='string'&&n.length>0&&n.length<=40))throw Error('設定有誤');state.names=q.names.slice();state.isRake=q.isRake;}else throw Error('未知指令');state.revision++;state.seen.push(m.id);broadcast();send(c,{type:'ACK',id:m.id,state});}catch(e){send(c,{type:'REJECT',id:m.id,message:e.message,state});}
+ try{if(m.kind==='rules'){if(!validRules(m.rules))throw Error('計分設定有誤');state.rules=Object.fromEntries(Object.keys(RULES).map(k=>[k,m.rules[k]]));}else if(m.kind==='reset'){state.scores=[0,0,0,0];state.pot=0;}else if(m.kind==='action'){const r=calculate(state,m);state.scores=state.scores.map((v,i)=>v+r.delta[i]);state.pot+=r.pot;}else if(m.kind==='settings'){const q=m.config;if(!q||typeof q.isRake!=='boolean'||!Array.isArray(q.names)||q.names.length!==4||!q.names.every(n=>typeof n==='string'&&n.length>0&&n.length<=40))throw Error('設定有誤');state.names=q.names.slice();state.isRake=q.isRake;}else throw Error('未知指令');state.revision++;state.seen.push(m.id);broadcast();send(c,{type:'ACK',id:m.id,state});}catch(e){send(c,{type:'REJECT',id:m.id,message:e.message,state});}
 }
-function status(t){$(isPhoneRole?'phone-status':'conn-status').textContent=t;}
-function receive(m){if(!m||typeof m!=='object')return;lastReply=Date.now();if(['STATE','ACK','REJECT'].includes(m.type)&&validState(m.state)){state=m.state;ready=true;status('● 已同步至 iPad');if(m.type==='STATE'&&pending)send(conn,pending);if(pending&&m.id===pending.id){pending=null;$('feedback').textContent=m.type==='ACK'?'已入帳 ✓':m.message;if(m.type==='ACK'){selectedPlayer=payer=null;horseCount=0;$('kong-win').checked=false;$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');}}renderControls();}}
+function status(t){$(isPhoneRole||soloMode?'phone-status':'conn-status').textContent=t;}
+function receive(m){if(!m||typeof m!=='object')return;lastReply=Date.now();if(['STATE','ACK','REJECT'].includes(m.type)&&validState(m.state)){state=m.state;ready=true;status(soloMode?'● 本機計分':'● 已同步至 iPad');if(m.type==='STATE'&&pending)send(conn,pending);if(pending&&m.id===pending.id){pending=null;$('feedback').textContent=m.type==='ACK'?'已完成 ✓':m.message;$('option-feedback').textContent=m.type==='ACK'?'已完成 ✓':m.message;if(m.type==='ACK'){selectedPlayer=payer=null;horseCount=0;$('kong-win').checked=false;$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');}}renderControls();}}
 function dial(){if(!peer?.open||conn?.open)return;conn?.close();conn=peer.connect(hostPeerId,{reliable:true});conn.on('open',()=>{lastReply=Date.now();send(conn,{type:'HELLO'});});conn.on('data',receive);conn.on('close',()=>{ready=false;status('連線中斷，正在重連…');renderControls();});conn.on('error',()=>{ready=false;status('連線失敗，正在重試…');});}
 function initPeer(){if(typeof Peer==='undefined'){status('連線元件載入失敗，請連上網絡後重新整理');return;}let savedId;try{savedId=sessionStorage.getItem('mahjong-host-id');}catch(e){}peer=new Peer(!isPhoneRole&&savedId?savedId:undefined);peer.on('open',id=>{if(isPhoneRole){dial();return;}try{sessionStorage.setItem('mahjong-host-id',id);}catch(e){}const url=new URL(location.href);url.search='';url.searchParams.set('join',id);$('join-link').href=url.href;$('join-link').textContent=url.href;$('qrcode').replaceChildren();if(typeof QRCode!=='undefined')new QRCode($('qrcode'),{text:url.href,width:220,height:220});else status('QR Code 載入失敗，可以用連結連線');});peer.on('connection',c=>{if(isPhoneRole){c.close();return;}clients.add(c);c.on('open',()=>{status('● '+[...clients].filter(x=>x.open).length+' 部控制器已連線');$('qr-modal').classList.add('hidden');send(c,{type:'STATE',state});});c.on('data',m=>accept(c,m));c.on('close',()=>{clients.delete(c);status(clients.size?'● 控制器已連線':'控制器已離線，可重新掃碼');});});peer.on('disconnected',()=>{status('訊號連線中斷，正在重試…');});peer.on('error',e=>{status('連線問題：'+e.type+'；正在重試');if(e.type==='unavailable-id'){try{sessionStorage.removeItem('mahjong-host-id');}catch(x){}peer.destroy();setTimeout(initPeer,2000);}});}
-window.addEventListener('DOMContentLoaded',()=>{if(isPhoneRole){$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');renderControls();initPeer();}else{try{const saved=JSON.parse(localStorage.getItem(KEY));if(validState(saved))state=saved;}catch(e){}state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('start-btn').textContent=state.revision?'繼續 iPad 計分板（保留分數）':'開啟 iPad 計分板';}setInterval(()=>{if(!peer)return;if(peer.disconnected&&!peer.destroyed&&Date.now()>retryAt){retryAt=Date.now()+5000;peer.reconnect();}if(isPhoneRole){if(conn?.open){send(conn,{type:'PING'});if(Date.now()-lastReply>15000){ready=false;conn.close();renderControls();}else if(pending)send(conn,pending);}else dial();}},3000);});
+function chooseMode(solo){soloMode=solo;$('mode-view').classList.add('hidden');$('setup-view').classList.remove('hidden');$('start-btn').textContent=solo?'開始 iPhone 計分＋睇分板':'開啟 iPad 計分板';}
+function renderPhoneBoard(){$('phone-scores').replaceChildren();state.names.forEach((n,i)=>{const card=document.createElement('div');card.className='opt-btn';const label=document.createElement('div');label.textContent=n;const score=document.createElement('div');score.textContent=(state.scores[i]>0?'+':'')+'$'+state.scores[i];score.className=state.scores[i]>0?'score-pos':state.scores[i]<0?'score-neg':'score-zero';score.style.fontSize='27px';card.append(label,score);$('phone-scores').append(card);});$('phone-pot').textContent='抽水箱 $'+state.pot+(state.isRake?' · 抽水版':' · 不抽水版');}
+const RULE_LABELS={win:'自摸：每家底數',horse:'自摸：每馬每家',rake:'抽水版：贏家每馬抽水',ming:'明槓：被槓者一人付',an:'暗槓：每家付',bu:'補槓：每家付',rob:'搶槓：被搶者包底數',robHorse:'搶槓：每馬被搶者付'};
+function validRules(r){return r&&Object.keys(RULES).every(k=>Number.isSafeInteger(r[k])&&r[k]>=0&&r[k]<=100000)&&r.rake<=Math.min(r.horse*3,r.robHorse);}
+function openOptions(){$('option-feedback').textContent='';$('rule-fields').replaceChildren();Object.keys(RULES).forEach(k=>{const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0';const text=document.createElement('span');text.textContent=RULE_LABELS[k]+' $';const input=document.createElement('input');input.id='rule-'+k;input.type='number';input.min='0';input.max='100000';input.step='1';input.inputMode='numeric';input.value=(state.rules||RULES)[k];input.style.cssText='width:100px;min-height:44px;font-size:18px;background:#303033;color:white;border:1px solid #777;border-radius:8px;padding:8px';label.append(text,input);$('rule-fields').append(label);});$('options-menu').showModal();}
+function saveRules(){const rules={};for(const k of Object.keys(RULES)){const value=$('rule-'+k).value;if(value.trim()===''){$('option-feedback').textContent='請填齊所有金額';return;}rules[k]=Number(value);}if(!validRules(rules)){$('option-feedback').textContent='請用 0–100000 整數；每馬抽水唔可以超過每馬總收入';return;}if(isPhoneRole||soloMode){if(!ready||pending){$('option-feedback').textContent='請等同步或上一筆操作完成';return;}submitCommand({kind:'rules',rules});}else{state.rules=rules;state.revision++;broadcast();$('option-feedback').textContent='已儲存計分設定 ✓';}}
+
+function zeroScores(){if((isPhoneRole||soloMode)&&(!ready||pending)){$('option-feedback').textContent='請等連線同步或上一筆操作完成';return;}if(!confirm('確定將四位玩家分數同抽水箱重設至 0？呢個動作無法復原。'))return;if(isPhoneRole||soloMode){submitCommand({kind:'reset'});}else{state.scores=[0,0,0,0];state.pot=0;state.revision++;broadcast();$('option-feedback').textContent='已重設至 0 ✓';}}
+window.addEventListener('DOMContentLoaded',()=>{if(isPhoneRole){$('mode-view').classList.add('hidden');$('options-btn').classList.remove('hidden');$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');renderControls();initPeer();}else{try{const saved=JSON.parse(localStorage.getItem(KEY));if(validState(saved))state=saved;}catch(e){}state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('start-btn').textContent=state.revision?'繼續 iPad 計分板（保留分數）':'開啟 iPad 計分板';}setInterval(()=>{if(!peer)return;if(peer.disconnected&&!peer.destroyed&&Date.now()>retryAt){retryAt=Date.now()+5000;peer.reconnect();}if(isPhoneRole){if(conn?.open){send(conn,{type:'PING'});if(Date.now()-lastReply>15000){ready=false;conn.close();renderControls();}else if(pending)send(conn,pending);}else dial();}},3000);});
 window.addEventListener('online',()=>{if(isPhoneRole)dial();else if(peer?.disconnected)peer.reconnect();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&isPhoneRole){if(conn?.open)send(conn,{type:'HELLO'});else dial();}});
 </script>
