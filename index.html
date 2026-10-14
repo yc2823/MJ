@@ -96,6 +96,44 @@
     #player-buttons .opt-btn,#payer-buttons .opt-btn {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:80px;padding:10px 6px;}
     .pick-score {font-size:25px;font-variant-numeric:tabular-nums;}
     .submit-btn {position:static;}
+    /* 按 Safari 實際可用高度調整，保留所有結算控制 */
+    #iphone-view {min-height:100dvh;padding:calc(54px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));}
+    #iphone-view>div:first-child {padding:0;min-height:20px;margin-bottom:6px!important;}
+    #iphone-view .ctrl-box {padding:8px;margin-bottom:6px;}
+    #iphone-view .ctrl-title {font-size:12px;line-height:1.3;margin-bottom:5px;}
+    #iphone-view .btn-group,#iphone-view .action-selector {gap:6px;}
+    #iphone-view .action-selector {grid-template-columns:repeat(5,minmax(0,1fr));}
+    #iphone-view .action-selector .act-btn:first-child {grid-column:auto;}
+    #iphone-view .act-btn {min-height:44px;padding:8px 2px;font-size:16px;}
+    #player-buttons .opt-btn {min-height:clamp(54px,9dvh,82px);padding:6px 4px;font-size:18px;gap:2px;}
+    #payer-buttons {grid-template-columns:repeat(4,minmax(0,1fr));}
+    #payer-buttons .opt-btn {min-height:50px;padding:6px 2px;font-size:15px;gap:2px;}
+    #iphone-view .pick-score {font-size:21px;}
+    #payer-buttons .pick-score {font-size:17px;}
+    #iphone-view .horses {grid-template-columns:repeat(6,minmax(0,1fr));}
+    #horse-buttons .opt-btn {min-height:44px;font-size:16px;padding:6px 1px;}
+    #iphone-view .kong-switch {min-height:36px;font-size:17px;}
+    #iphone-view .kong-switch input {width:26px;height:26px;}
+    #kong-box .hint {display:none;}
+    #iphone-view #settlement {font-size:12px;line-height:1.4;}
+    #feedback {min-height:0;font-size:13px;line-height:1.4;}
+    #feedback:empty {display:none;}
+    #iphone-view .submit-btn {min-height:48px;padding:10px;margin-top:4px;font-size:18px;}
+    @media(max-height:700px) {
+      #iphone-view .ctrl-box {padding:6px;margin-bottom:4px;}
+      #player-buttons .opt-btn {min-height:44px;flex-direction:row;gap:8px;font-size:16px;}
+      #payer-buttons .opt-btn {min-height:44px;}
+      #iphone-view .pick-score {font-size:17px;}
+      #iphone-view .act-btn {font-size:14px;}
+    }
+    @media(max-height:620px) {
+      #iphone-view>.ctrl-box:has(.action-selector)>.ctrl-title {display:none;}
+      #iphone-view #settlement {padding:4px;font-size:11px;}
+    }
+    @media(orientation:landscape) and (max-height:500px) {
+      #iphone-view {max-width:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 10px;align-content:start;}
+      #iphone-view>div:first-child,#iphone-view .submit-btn,#feedback {grid-column:1/-1;}
+    }
   </style>
 </head>
 <body>
@@ -103,7 +141,7 @@
   <button id="results-btn" class="opt-btn hidden" onclick="showResults()" style="position:fixed;left:max(10px,env(safe-area-inset-left));top:max(8px,env(safe-area-inset-top));z-index:110;min-height:44px;font-size:16px;padding:8px 12px">顯示結果</button>
   <dialog id="results-menu" aria-labelledby="results-title" style="margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:20px;width:min(92vw,480px);max-height:90dvh;overflow:auto"><h2 id="results-title" style="margin-bottom:16px">目前結果</h2><div id="results-players" class="btn-group grid-4-btn" aria-live="polite"></div><div class="ctrl-box" style="margin-top:12px;background:#241d08;color:#ffd60a"><div>抽水箱</div><div id="results-pot" style="font-size:30px;font-weight:bold"></div></div><p id="results-status" class="hint"></p><button class="btn-start" onclick="document.getElementById('results-menu').close()">返回計分</button></dialog>
   <button id="options-btn" class="opt-btn hidden" aria-label="開啟選項" onclick="openOptions()" style="position:fixed;right:max(10px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));z-index:110;min-height:44px;font-size:16px;padding:8px 12px">☰ 選項</button>
-  <dialog id="options-menu" style="margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:22px;width:min(92vw,440px);max-height:90dvh;overflow:auto"><h2>選項</h2><button class="reset-btn" onclick="zeroScores()" style="min-height:60px;font-size:19px">將計分重設至 0</button><p class="hint">四位玩家分數同抽水箱歸零，保留玩家名稱及玩法。</p><button class="opt-btn" style="width:100%;margin-top:16px" onclick="document.getElementById('options-menu').close()">返回</button><details style="margin-top:20px"><summary style="font-size:20px;padding:12px 0;cursor:pointer">自訂計分選項</summary><p class="hint">每家／單一付款者嘅金額如下。只影響之後嘅結算。</p><div id="rule-fields"></div><button id="save-rules" class="btn-start" onclick="saveRules()">儲存計分設定</button></details><p id="option-feedback" role="status"></p></dialog>
+  <dialog id="options-menu" style="margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:22px;width:min(92vw,440px);max-height:90dvh;overflow:auto"><h2>選項</h2><button class="opt-btn" style="width:100%;margin-top:12px" onclick="document.getElementById('options-menu').close();resetGame()">設定玩家名稱／玩法</button><button class="reset-btn" onclick="zeroScores()" style="min-height:60px;font-size:19px">將計分重設至 0</button><p class="hint">四位玩家分數同抽水箱歸零，保留玩家名稱及玩法。</p><button class="opt-btn" style="width:100%;margin-top:16px" onclick="document.getElementById('options-menu').close()">返回</button><details style="margin-top:20px"><summary style="font-size:20px;padding:12px 0;cursor:pointer">自訂計分選項</summary><p class="hint">每家／單一付款者嘅金額如下。只影響之後嘅結算。</p><div id="rule-fields"></div><button id="save-rules" class="btn-start" onclick="saveRules()">儲存計分設定</button></details><p id="option-feedback" role="status"></p></dialog>
 
 
   <!-- 1. 開局設定介面 -->
@@ -184,7 +222,7 @@
     <div id="settlement" class="ctrl-box" aria-live="polite">請選擇玩家</div>
     <p id="feedback" role="status"></p>
     <button type="button" class="submit-btn" onclick="submitAction()">確認送出更新</button>
-    <button type="button" class="reset-btn" onclick="resetGame()">重新設定玩家名稱/版本</button>
+    
   </div>
 
 <script>
@@ -230,7 +268,7 @@ function renderControls(){
  $('player-pick-label').textContent={win:'自摸玩家',ming:'明槓玩家',an:'暗槓玩家',bu:'補槓玩家',rob:'搶槓者'}[currentAction];
  const single=['ming','rob'].includes(currentAction),kong=['ming','an','bu'].includes(currentAction);
  $('payer-box').classList.toggle('hidden',!single);$('payer-label').textContent=currentAction==='rob'?'被搶者（包晒）':'被槓玩家（付 $30）';$('kong-box').classList.toggle('hidden',!kong);
- const rules={...RULES,...state.rules};$('payer-label').textContent=currentAction==='rob'?'被搶者（包晒）':'被槓玩家（付 $'+rules.ming+'）';$('horse-box').querySelector('.ctrl-title').textContent=currentAction==='rob'?'中馬隻數（底數 $'+rules.rob+'；每馬 $'+rules.robHorse+'；'+(state.isRake?'每馬抽 $'+rules.rake:'不抽水')+'）':'中馬隻數（每家底數 $'+rules.win+'；每馬每家 $'+rules.horse+'；'+(state.isRake?'每馬抽 $'+rules.rake:'不抽水')+'）';
+ const rules={...RULES,...state.rules};$('payer-label').textContent=currentAction==='rob'?'被搶者（包晒）':'被槓玩家（付 $'+rules.ming+'）';$('horse-box').querySelector('.ctrl-title').textContent='中馬隻數';
  const hasHorse=['win','rob'].includes(currentAction)||(kong&&$('kong-win').checked);$('horse-box').classList.toggle('hidden',!hasHorse);
  function picks(id,selected,callback){$(id).replaceChildren();state.names.forEach((n,i)=>{let b=document.createElement('button');b.type='button';const label=document.createElement('span');label.textContent=n;const score=document.createElement('span');const v=state.scores[i];score.textContent=(v<0?'−':v>0?'+':'')+'$'+Math.abs(v);score.className='pick-score '+(v>0?'score-pos':v<0?'score-neg':'score-zero');b.append(label,score);b.className='opt-btn'+(selected===i?' active':'');b.setAttribute('aria-pressed',String(selected===i));b.disabled=id==='payer-buttons'&&i===selectedPlayer;b.onclick=()=>{callback(i);renderControls();};$(id).append(b);});}
  picks('player-buttons',selectedPlayer,i=>{selectedPlayer=i;if(payer===i)payer=null;});picks('payer-buttons',payer,i=>payer=i);
