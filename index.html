@@ -16,11 +16,11 @@
     .setup-title { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: bold; }
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 14px; color: #8e8e93; margin-bottom: 8px; }
-    .name-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .name-inputs input { background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px; border-radius: 8px; font-size: 16px; outline: none; }
+    .name-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .name-inputs input { width: 100%; min-width: 0; max-width: 100%; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px; border-radius: 8px; font-size: 16px; outline: none; }
     .name-inputs input:focus { border-color: #007aff; }
-    .mode-select { display: flex; gap: 10px; }
-    .mode-btn { flex: 1; padding: 12px; background: #2c2c2e; border: 2px solid #3a3a3c; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .mode-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .mode-btn { min-width: 0; width: 100%; overflow-wrap: anywhere; padding: 12px; background: #2c2c2e; border: 2px solid #3a3a3c; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
     .mode-btn.active { border-color: #34c759; background: #1e3a24; color: #30d158; }
     .btn-start { width: 100%; padding: 15px; background: #34c759; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; margin-top: 10px; cursor: pointer; }
 
@@ -68,7 +68,11 @@
     .submit-btn { width: 100%; padding: 16px; background: #34c759; color: #fff; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; margin-top: 10px; }
     .reset-btn { width: 100%; padding: 12px; background: transparent; color: #ff453a; font-size: 14px; font-weight: bold; border: none; margin-top: 5px; cursor: pointer; }
     body {justify-content:flex-start;min-height:100dvh;}
-    #setup-view {margin:24px auto;}
+    #setup-view {margin:24px auto;width:calc(100% - 24px);max-width:440px;min-width:0;padding:20px;align-self:center;}
+    #setup-view .name-inputs input {min-height:48px;}
+    #setup-view .mode-btn {min-height:54px;line-height:1.4;}
+    #setup-view .btn-start {white-space:normal;line-height:1.4;padding:15px 10px;}
+    @media(max-width:360px) {#setup-view {padding:16px;}.setup-title {font-size:21px;}}
     #iphone-view {max-width:720px;min-height:100dvh;padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));}
     .ctrl-box {padding:12px;margin-bottom:10px;}
     .ctrl-title {font-size:15px;color:#b5b5bb;}
