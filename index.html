@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>跑馬仔電子計分板 (P2P)</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #121212; color: #f5f5f7; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .hidden { display: none !important; }
+
+    /* 設定開局介面 (iPad / iPhone 通用) */
+    #setup-view { background: #1c1c1e; padding: 24px; border-radius: 16px; width: 92%; max-width: 440px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+    .setup-title { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: bold; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 14px; color: #8e8e93; margin-bottom: 8px; }
+    .name-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .name-inputs input { background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px; border-radius: 8px; font-size: 16px; outline: none; }
+    .name-inputs input:focus { border-color: #007aff; }
+    .mode-select { display: flex; gap: 10px; }
+    .mode-btn { flex: 1; padding: 12px; background: #2c2c2e; border: 2px solid #3a3a3c; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .mode-btn.active { border-color: #34c759; background: #1e3a24; color: #30d158; }
+    .btn-start { width: 100%; padding: 15px; background: #34c759; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+
+    /* iPad 看板介面 */
+    #ipad-view { width: 96vw; height: 96vh; display: flex; flex-direction: column; padding: 10px; }
+    .board-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #1c1c1e; border-radius: 14px; margin-bottom: 12px; }
+    .grid-container { display: grid; gap: 14px; flex: 1; }
+    .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .grid-5 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 100px; }
+    
+    .player-card { background: #1c1c1e; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid #2c2c2e; }
+    .player-name { font-size: 28px; color: #98989d; margin-bottom: 8px; font-weight: 600; }
+    .player-score { font-size: 60px; font-weight: bold; }
+    .score-pos { color: #30d158; }
+    .score-neg { color: #ff453a; }
+    .score-zero { color: #8e8e93; }
+
+    /* 抽水箱卡片 */
+    .pot-card { grid-column: 1 / span 2; background: #241d08; border: 2px solid #ffd60a; flex-direction: row; justify-content: space-around; padding: 10px 20px; border-radius: 16px; align-items: center; }
+    .pot-title { font-size: 24px; color: #ffd60a; font-weight: bold; }
+    .pot-amount { font-size: 44px; font-weight: bold; color: #ffd60a; }
+
+    /* 連線 QR Code 遮罩 */
+    #qr-modal { position: absolute; background: rgba(0,0,0,0.88); top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99; }
+    #qrcode { background: white; padding: 16px; border-radius: 14px; margin-bottom: 15px; }
+
+    /* iPhone 控制端 */
+    #iphone-view { width: 100%; max-width: 440px; padding: 16px; }
+    .ctrl-box { background: #1c1c1e; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .ctrl-title { font-size: 13px; color: #8e8e93; margin-bottom: 10px; font-weight: 600; }
+    .btn-group { display: grid; gap: 8px; }
+    .grid-4-btn { grid-template-columns: repeat(4, 1fr); }
+    .opt-btn { background: #2c2c2e; color: #fff; border: 2px solid transparent; padding: 14px 4px; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .opt-btn.active { border-color: #ff9f0a; background: #3a2e18; color: #ff9f0a; }
+
+    /* 動作類型按鈕 */
+    .action-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .act-btn { padding: 14px 6px; background: #2c2c2e; border: 2px solid transparent; color: #fff; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .act-btn.active { background: #007aff; border-color: #007aff; }
+
+    .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; }
+    .counter-btn { width: 48px; height: 48px; background: #2c2c2e; border: none; border-radius: 8px; color: #fff; font-size: 24px; font-weight: bold; cursor: pointer; }
+    .counter-display { font-size: 24px; font-weight: bold; color: #ffd60a; }
+
+    .submit-btn { width: 100%; padding: 16px; background: #34c759; color: #fff; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; margin-top: 10px; }
+    .reset-btn { width: 100%; padding: 12px; background: transparent; color: #ff453a; font-size: 14px; font-weight: bold; border: none; margin-top: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 開局設定介面 -->
+  <div id="setup-view">
+    <div class="setup-title">🀄️ 跑馬仔設定</div>
+    
+    <div class="form-group">
+      <label>玩法版本</label>
+      <div class="mode-select">
+        <button type="button" class="mode-btn active" id="btn-mode-rake" onclick="toggleRake(true)">抽水版 (中馬抽$10)</button>
+        <button type="button" class="mode-btn" id="btn-mode-norake" onclick="toggleRake(false)">不抽水版</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>自訂玩家名稱 (東南西北)</label>
+      <div class="name-inputs">
+        <input type="text" id="p-name-0" placeholder="東家" value="東家">
+        <input type="text" id="p-name-1" placeholder="南家" value="南家">
+        <input type="text" id="p-name-2" placeholder="西家" value="西家">
+        <input type="text" id="p-name-3" placeholder="北家" value="北家">
+      </div>
+    </div>
+
+    <button type="button" class="btn-start" id="start-btn" onclick="handleStart()">確定開局</button>
+  </div>
+
+  <!-- 2. iPad 顯示看板 -->
+  <div id="ipad-view" class="hidden">
+    <div class="board-header">
+      <h2 id="board-mode-tag">跑馬仔計分板</h2>
+      <div id="conn-status" style="color: #ff9f0a; font-size: 15px;">等待 iPhone 掃碼連線...</div>
+    </div>
+
+    <div id="board-grid" class="grid-container grid-4">
+      <div class="player-card"><div class="player-name" id="disp-name-0">東家</div><div id="score-0" class="player-score score-zero">0</div></div>
+      <div class="player-card"><div class="player-name" id="disp-name-1">南家</div><div id="score-1" class="player-score score-zero">0</div></div>
+      <div class="player-card"><div class="player-name" id="disp-name-2">西家</div><div id="score-2" class="player-score score-zero">0</div></div>
+      <div class="player-card"><div class="player-name" id="disp-name-3">北家</div><div id="score-3" class="player-score score-zero">0</div></div>
+      
+      <!-- 抽水箱 -->
+      <div id="pot-card" class="player-card pot-card hidden">
+        <div class="pot-title">💰 抽水箱</div>
+        <div id="pot-score" class="pot-amount">$0</div>
+      </div>
+    </div>
+
+    <!-- QR Code 遮罩 -->
+    <div id="qr-modal">
+      <div id="qrcode"></div>
+      <p style="font-size: 18px; font-weight: 500;">請用 iPhone 相機掃碼控制</p>
+    </div>
+  </div>
+
+  <!-- 3. iPhone 控制端 -->
+  <div id="iphone-view" class="hidden">
+    <div style="text-align: center; margin-bottom: 12px; font-size: 14px; color: #30d158; font-weight: bold;">
+      ● 已連線至 iPad (<span id="phone-mode-text">抽水版</span>)
+    </div>
+
+    <div class="ctrl-box">
+      <div class="ctrl-title">結算動作</div>
+      <div class="action-selector">
+        <button type="button" class="act-btn active" id="act-win" onclick="setAction('win')">自摸</button>
+        <button type="button" class="act-btn" id="act-ming" onclick="setAction('ming')">明/補槓 ($10)</button>
+        <button type="button" class="act-btn" id="act-an" onclick="setAction('an')">暗槓 ($20)</button>
+      </div>
+    </div>
+
+    <div class="ctrl-box">
+      <div class="ctrl-title" id="player-pick-label">自摸玩家</div>
+      <div class="btn-group grid-4-btn" id="player-buttons"></div>
+    </div>
+
+    <div class="ctrl-box" id="horse-box">
+      <div class="ctrl-title">中馬隻數 ($20/隻<span id="rake-tip">，中1隻抽$10</span>)</div>
+      <div class="counter-row">
+        <button type="button" class="counter-btn" onclick="changeHorse(-1)">-</button>
+        <div class="counter-display" id="horse-count">0 隻</div>
+        <button type="button" class="counter-btn" onclick="changeHorse(1)">+</button>
+      </div>
+    </div>
+
+    <button type="button" class="submit-btn" onclick="submitAction()">確認送出更新</button>
+    <button type="button" class="reset-btn" onclick="resetGame()">重新設定玩家名稱/版本</button>
+  </div>
+
+  <script>
+    let peer = null;
+    let conn = null;
+    let isPhoneRole = false;
+    let hostPeerId = null;
+
+    let state = {
+      isRake: true,
+      names: ["東家", "南家", "西家", "北家"],
+      scores: [0, 0, 0, 0],
+      pot: 0
+    };
+
+    let currentAction = 'win';
+    let selectedPlayer = null;
+    let horseCount = 0;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      hostPeerId = urlParams.get('join');
+
+      if (hostPeerId) {
+        isPhoneRole = true;
+        document.getElementById('start-btn').innerText = '儲存設定並開始控制';
+        connectToHost(hostPeerId);
+      } else {
+        document.getElementById('start-btn').innerText = '開啟 iPad 計分看板';
+      }
+    });
+
+    function toggleRake(enable) {
+      state.isRake = enable;
+      document.getElementById('btn-mode-rake').className = `mode-btn ${enable ? 'active' : ''}`;
+      document.getElementById('btn-mode-norake').className = `mode-btn ${!enable ? 'active' : ''}`;
+    }
+
+    function readNamesFromInput() {
+      for (let i = 0; i < 4; i++) {
+        const val = document.getElementById(`p-name-${i}`).value.trim();
+        state.names[i] = val || `玩家${i+1}`;
+      }
+    }
+
+    function handleStart() {
+      readNamesFromInput();
+
+      if (isPhoneRole) {
+        if (conn && conn.open) {
+          conn.send({ type: 'UPDATE_ALL', state: state });
+        }
+        switchToPhoneUI();
+      } else {
+        startAsHost();
+      }
+    }
+
+    // iPad 邏輯
+    function startAsHost() {
+      document.getElementById('setup-view').classList.add('hidden');
+      document.getElementById('ipad-view').classList.remove('hidden');
+      updateBoardLayout();
+
+      peer = new Peer();
+      peer.on('open', (id) => {
+        const joinUrl = `${window.location.origin}${window.location.pathname}?join=${id}`;
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 220, height: 220 });
+      });
+
+      peer.on('connection', (c) => {
+        conn = c;
+        document.getElementById('qr-modal').classList.add('hidden');
+        document.getElementById('conn-status').innerText = '● iPhone 已連線';
+        document.getElementById('conn-status').style.color = '#30d158';
+
+        conn.on('data', (data) => {
+          if (data.type === 'UPDATE_ALL') {
+            state = data.state;
+            updateBoardLayout();
+            renderBoard();
+          }
+        });
+      });
+    }
+
+    function updateBoardLayout() {
+      document.getElementById('board-mode-tag').innerText = `跑馬仔計分板 (${state.isRake ? '抽水版' : '不抽水版'})`;
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`disp-name-${i}`).innerText = state.names[i];
+      }
+      if (state.isRake) {
+        document.getElementById('board-grid').className = 'grid-container grid-5';
+        document.getElementById('pot-card').classList.remove('hidden');
+      } else {
+        document.getElementById('board-grid').className = 'grid-container grid-4';
+        document.getElementById('pot-card').classList.add('hidden');
+      }
+    }
+
+    function renderBoard() {
+      for (let i = 0; i < 4; i++) {
+        const el = document.getElementById(`score-${i}`);
+        const sc = state.scores[i];
+        el.innerText = sc > 0 ? `+${sc}` : sc;
+        el.className = `player-score ${sc > 0 ? 'score-pos' : sc < 0 ? 'score-neg' : 'score-zero'}`;
+      }
+      if (state.isRake) {
+        document.getElementById('pot-score').innerText = `$${state.pot}`;
+      }
+    }
+
+    // iPhone 邏輯
+    function connectToHost(targetHostId) {
+      peer = new Peer();
+      peer.on('open', () => {
+        conn = peer.connect(targetHostId);
+      });
+    }
+
+    function switchToPhoneUI() {
+      document.getElementById('setup-view').classList.add('hidden');
+      document.getElementById('iphone-view').classList.remove('hidden');
+
+      document.getElementById('phone-mode-text').innerText = state.isRake ? '抽水版' : '不抽水版';
+      if (!state.isRake) {
+        document.getElementById('rake-tip').style.display = 'none';
+      }
+
+      const container = document.getElementById('player-buttons');
+      container.innerHTML = '';
+      selectedPlayer = null;
+
+      state.names.forEach((name, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'opt-btn';
+        btn.id = `btn-p-${idx}`;
+        btn.innerText = name;
+        btn.onclick = () => selectPlayer(idx);
+        container.appendChild(btn);
+      });
+    }
+
+    function setAction(act) {
+      currentAction = act;
+      document.querySelectorAll('.act-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`act-${act}`).classList.add('active');
+
+      const horseBox = document.getElementById('horse-box');
+      const label = document.getElementById('player-pick-label');
+
+      if (act === 'win') {
+        horseBox.classList.remove('hidden');
+        label.innerText = '自摸玩家';
+      } else {
+        horseBox.classList.add('hidden');
+        label.innerText = act === 'ming' ? '明/補槓玩家' : '暗槓玩家';
+      }
+    }
+
+    function selectPlayer(idx) {
+      selectedPlayer = idx;
+      document.querySelectorAll('#player-buttons .opt-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === idx);
+      });
+    }
+
+    function changeHorse(delta) {
+      horseCount = Math.max(0, horseCount + delta);
+      document.getElementById('horse-count').innerText = `${horseCount} 隻`;
+    }
+
+    function submitAction() {
+      if (selectedPlayer === null) {
+        alert('請先點選玩家！');
+        return;
+      }
+
+      const p = selectedPlayer;
+
+      if (currentAction === 'win') {
+        const perLoser = 20 + (horseCount * 20);
+        const grossGain = perLoser * 3;
+        let rake = (state.isRake && horseCount > 0) ? horseCount * 10 : 0;
+
+        for (let i = 0; i < 4; i++) {
+          if (i === p) {
+            state.scores[i] += (grossGain - rake);
+          } else {
+            state.scores[i] -= perLoser;
+          }
+        }
+        state.pot += rake;
+      } else if (currentAction === 'ming') {
+        for (let i = 0; i < 4; i++) {
+          if (i === p) state.scores[i] += 30;
+          else state.scores[i] -= 10;
+        }
+      } else if (currentAction === 'an') {
+        for (let i = 0; i < 4; i++) {
+          if (i === p) state.scores[i] += 60;
+          else state.scores[i] -= 20;
+        }
+      }
+
+      if (conn && conn.open) {
+        conn.send({ type: 'UPDATE_ALL', state: state });
+      }
+
+      horseCount = 0;
+      document.getElementById('horse-count').innerText = '0 隻';
+      selectedPlayer = null;
+      document.querySelectorAll('#player-buttons .opt-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    function resetGame() {
+      if (confirm('確定要重新設定玩家或版本嗎？目前的計分將會保留。')) {
+        document.getElementById('iphone-view').classList.add('hidden');
+        document.getElementById('setup-view').classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
