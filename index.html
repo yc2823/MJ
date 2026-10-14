@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>跑馬仔電子計分板 (P2P)</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -67,6 +67,26 @@
 
     .submit-btn { width: 100%; padding: 16px; background: #34c759; color: #fff; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; margin-top: 10px; }
     .reset-btn { width: 100%; padding: 12px; background: transparent; color: #ff453a; font-size: 14px; font-weight: bold; border: none; margin-top: 5px; cursor: pointer; }
+    body {justify-content:flex-start;min-height:100dvh;}
+    #setup-view {margin:24px auto;}
+    #iphone-view {max-width:720px;min-height:100dvh;padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));}
+    .ctrl-box {padding:12px;margin-bottom:10px;}
+    .ctrl-title {font-size:15px;color:#b5b5bb;}
+    .grid-4-btn {grid-template-columns:repeat(2,minmax(0,1fr));}
+    .opt-btn,.act-btn {min-height:58px;font-size:19px;white-space:normal;overflow-wrap:anywhere;touch-action:manipulation;}
+    .action-selector {grid-template-columns:repeat(3,minmax(0,1fr));}
+    .action-selector .act-btn:first-child {grid-column:span 2;}
+    .horses {grid-template-columns:repeat(3,1fr);}
+    .kong-switch {display:flex;align-items:center;gap:12px;font-size:21px;min-height:48px;}
+    .kong-switch input {width:30px;height:30px;accent-color:#34c759;}
+    .hint {font-size:14px;color:#aaa;margin-top:6px;}
+    button:disabled {opacity:.4;cursor:default;}
+    .submit-btn {min-height:64px;position:sticky;bottom:env(safe-area-inset-bottom,0);box-shadow:0 0 18px #121212;}
+    #settlement {line-height:1.6;color:#ffd60a;}
+    #feedback {min-height:24px;color:#ff9f0a;}
+    #ipad-view {height:100dvh;}
+    #qr-modal {position:fixed;min-height:100dvh;overflow:auto;}
+    .board-header {flex-wrap:wrap;gap:10px;}
   </style>
 </head>
 <body>
@@ -99,7 +119,7 @@
   <!-- 2. iPad 顯示看板 -->
   <div id="ipad-view" class="hidden">
     <div class="board-header">
-      <h2 id="board-mode-tag">跑馬仔計分板</h2>
+      <h2 id="board-mode-tag">跑馬仔計分板</h2><button class="opt-btn" onclick="document.getElementById('qr-modal').classList.remove('hidden')">連線 QR Code</button>
       <div id="conn-status" style="color: #ff9f0a; font-size: 15px;">等待 iPhone 掃碼連線...</div>
     </div>
 
@@ -118,7 +138,7 @@
 
     <!-- QR Code 遮罩 -->
     <div id="qr-modal">
-      <div id="qrcode"></div>
+      <div id="qrcode"></div><a id="join-link" style="color:white;word-break:break-all;padding:20px"></a><button class="opt-btn" onclick="document.getElementById('qr-modal').classList.add('hidden')">返回計分板</button>
       <p style="font-size: 18px; font-weight: 500;">請用 iPhone 相機掃碼控制</p>
     </div>
   </div>
@@ -126,16 +146,16 @@
   <!-- 3. iPhone 控制端 -->
   <div id="iphone-view" class="hidden">
     <div style="text-align: center; margin-bottom: 12px; font-size: 14px; color: #30d158; font-weight: bold;">
-      ● 已連線至 iPad (<span id="phone-mode-text">抽水版</span>)
+      <span id="phone-status">連線中…</span> · <span id="phone-mode-text">抽水版</span>
     </div>
 
     <div class="ctrl-box">
       <div class="ctrl-title">結算動作</div>
       <div class="action-selector">
         <button type="button" class="act-btn active" id="act-win" onclick="setAction('win')">自摸</button>
-        <button type="button" class="act-btn" id="act-ming" onclick="setAction('ming')">明/補槓 ($10)</button>
-        <button type="button" class="act-btn" id="act-an" onclick="setAction('an')">暗槓 ($20)</button>
-      </div>
+        <button type="button" class="act-btn" id="act-ming" onclick="setAction('ming')">明槓</button>
+        <button type="button" class="act-btn" id="act-an" onclick="setAction('an')">暗槓</button>
+      <button type="button" class="act-btn" id="act-bu" onclick="setAction('bu')">補槓</button><button type="button" class="act-btn" id="act-rob" onclick="setAction('rob')">搶槓</button></div>
     </div>
 
     <div class="ctrl-box">
@@ -143,240 +163,82 @@
       <div class="btn-group grid-4-btn" id="player-buttons"></div>
     </div>
 
-    <div class="ctrl-box" id="horse-box">
-      <div class="ctrl-title">中馬隻數 ($20/隻<span id="rake-tip">，中1隻抽$10</span>)</div>
-      <div class="counter-row">
-        <button type="button" class="counter-btn" onclick="changeHorse(-1)">-</button>
-        <div class="counter-display" id="horse-count">0 隻</div>
-        <button type="button" class="counter-btn" onclick="changeHorse(1)">+</button>
-      </div>
-    </div>
-
+    <div class="ctrl-box hidden" id="payer-box"><div class="ctrl-title" id="payer-label">被槓玩家</div><div class="btn-group grid-4-btn" id="payer-buttons"></div></div>
+    <div class="ctrl-box hidden" id="kong-box"><label class="kong-switch"><input type="checkbox" id="kong-win" onchange="renderControls()"> 槓上自摸</label><p class="hint">槓錢＋普通自摸，冇額外獎金</p></div>
+    <div class="ctrl-box" id="horse-box"><div class="ctrl-title">中馬隻數（每馬每家 $20；抽水版每馬抽 $10）</div><div class="btn-group horses" id="horse-buttons"></div></div>
+    <div id="settlement" class="ctrl-box" aria-live="polite">請選擇玩家</div>
+    <p id="feedback" role="status"></p>
     <button type="button" class="submit-btn" onclick="submitAction()">確認送出更新</button>
     <button type="button" class="reset-btn" onclick="resetGame()">重新設定玩家名稱/版本</button>
   </div>
 
-  <script>
-    let peer = null;
-    let conn = null;
-    let isPhoneRole = false;
-    let hostPeerId = null;
-
-    let state = {
-      isRake: true,
-      names: ["東家", "南家", "西家", "北家"],
-      scores: [0, 0, 0, 0],
-      pot: 0
-    };
-
-    let currentAction = 'win';
-    let selectedPlayer = null;
-    let horseCount = 0;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      hostPeerId = urlParams.get('join');
-
-      if (hostPeerId) {
-        isPhoneRole = true;
-        document.getElementById('start-btn').innerText = '儲存設定並開始控制';
-        connectToHost(hostPeerId);
-      } else {
-        document.getElementById('start-btn').innerText = '開啟 iPad 計分看板';
-      }
-    });
-
-    function toggleRake(enable) {
-      state.isRake = enable;
-      document.getElementById('btn-mode-rake').className = `mode-btn ${enable ? 'active' : ''}`;
-      document.getElementById('btn-mode-norake').className = `mode-btn ${!enable ? 'active' : ''}`;
-    }
-
-    function readNamesFromInput() {
-      for (let i = 0; i < 4; i++) {
-        const val = document.getElementById(`p-name-${i}`).value.trim();
-        state.names[i] = val || `玩家${i+1}`;
-      }
-    }
-
-    function handleStart() {
-      readNamesFromInput();
-
-      if (isPhoneRole) {
-        if (conn && conn.open) {
-          conn.send({ type: 'UPDATE_ALL', state: state });
-        }
-        switchToPhoneUI();
-      } else {
-        startAsHost();
-      }
-    }
-
-    // iPad 邏輯
-    function startAsHost() {
-      document.getElementById('setup-view').classList.add('hidden');
-      document.getElementById('ipad-view').classList.remove('hidden');
-      updateBoardLayout();
-
-      peer = new Peer();
-      peer.on('open', (id) => {
-        const joinUrl = `${window.location.origin}${window.location.pathname}?join=${id}`;
-        document.getElementById("qrcode").innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 220, height: 220 });
-      });
-
-      peer.on('connection', (c) => {
-        conn = c;
-        document.getElementById('qr-modal').classList.add('hidden');
-        document.getElementById('conn-status').innerText = '● iPhone 已連線';
-        document.getElementById('conn-status').style.color = '#30d158';
-
-        conn.on('data', (data) => {
-          if (data.type === 'UPDATE_ALL') {
-            state = data.state;
-            updateBoardLayout();
-            renderBoard();
-          }
-        });
-      });
-    }
-
-    function updateBoardLayout() {
-      document.getElementById('board-mode-tag').innerText = `跑馬仔計分板 (${state.isRake ? '抽水版' : '不抽水版'})`;
-      for (let i = 0; i < 4; i++) {
-        document.getElementById(`disp-name-${i}`).innerText = state.names[i];
-      }
-      if (state.isRake) {
-        document.getElementById('board-grid').className = 'grid-container grid-5';
-        document.getElementById('pot-card').classList.remove('hidden');
-      } else {
-        document.getElementById('board-grid').className = 'grid-container grid-4';
-        document.getElementById('pot-card').classList.add('hidden');
-      }
-    }
-
-    function renderBoard() {
-      for (let i = 0; i < 4; i++) {
-        const el = document.getElementById(`score-${i}`);
-        const sc = state.scores[i];
-        el.innerText = sc > 0 ? `+${sc}` : sc;
-        el.className = `player-score ${sc > 0 ? 'score-pos' : sc < 0 ? 'score-neg' : 'score-zero'}`;
-      }
-      if (state.isRake) {
-        document.getElementById('pot-score').innerText = `$${state.pot}`;
-      }
-    }
-
-    // iPhone 邏輯
-    function connectToHost(targetHostId) {
-      peer = new Peer();
-      peer.on('open', () => {
-        conn = peer.connect(targetHostId);
-      });
-    }
-
-    function switchToPhoneUI() {
-      document.getElementById('setup-view').classList.add('hidden');
-      document.getElementById('iphone-view').classList.remove('hidden');
-
-      document.getElementById('phone-mode-text').innerText = state.isRake ? '抽水版' : '不抽水版';
-      if (!state.isRake) {
-        document.getElementById('rake-tip').style.display = 'none';
-      }
-
-      const container = document.getElementById('player-buttons');
-      container.innerHTML = '';
-      selectedPlayer = null;
-
-      state.names.forEach((name, idx) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'opt-btn';
-        btn.id = `btn-p-${idx}`;
-        btn.innerText = name;
-        btn.onclick = () => selectPlayer(idx);
-        container.appendChild(btn);
-      });
-    }
-
-    function setAction(act) {
-      currentAction = act;
-      document.querySelectorAll('.act-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(`act-${act}`).classList.add('active');
-
-      const horseBox = document.getElementById('horse-box');
-      const label = document.getElementById('player-pick-label');
-
-      if (act === 'win') {
-        horseBox.classList.remove('hidden');
-        label.innerText = '自摸玩家';
-      } else {
-        horseBox.classList.add('hidden');
-        label.innerText = act === 'ming' ? '明/補槓玩家' : '暗槓玩家';
-      }
-    }
-
-    function selectPlayer(idx) {
-      selectedPlayer = idx;
-      document.querySelectorAll('#player-buttons .opt-btn').forEach((b, i) => {
-        b.classList.toggle('active', i === idx);
-      });
-    }
-
-    function changeHorse(delta) {
-      horseCount = Math.max(0, horseCount + delta);
-      document.getElementById('horse-count').innerText = `${horseCount} 隻`;
-    }
-
-    function submitAction() {
-      if (selectedPlayer === null) {
-        alert('請先點選玩家！');
-        return;
-      }
-
-      const p = selectedPlayer;
-
-      if (currentAction === 'win') {
-        const perLoser = 20 + (horseCount * 20);
-        const grossGain = perLoser * 3;
-        let rake = (state.isRake && horseCount > 0) ? horseCount * 10 : 0;
-
-        for (let i = 0; i < 4; i++) {
-          if (i === p) {
-            state.scores[i] += (grossGain - rake);
-          } else {
-            state.scores[i] -= perLoser;
-          }
-        }
-        state.pot += rake;
-      } else if (currentAction === 'ming') {
-        for (let i = 0; i < 4; i++) {
-          if (i === p) state.scores[i] += 30;
-          else state.scores[i] -= 10;
-        }
-      } else if (currentAction === 'an') {
-        for (let i = 0; i < 4; i++) {
-          if (i === p) state.scores[i] += 60;
-          else state.scores[i] -= 20;
-        }
-      }
-
-      if (conn && conn.open) {
-        conn.send({ type: 'UPDATE_ALL', state: state });
-      }
-
-      horseCount = 0;
-      document.getElementById('horse-count').innerText = '0 隻';
-      selectedPlayer = null;
-      document.querySelectorAll('#player-buttons .opt-btn').forEach(b => b.classList.remove('active'));
-    }
-
-    function resetGame() {
-      if (confirm('確定要重新設定玩家或版本嗎？目前的計分將會保留。')) {
-        document.getElementById('iphone-view').classList.add('hidden');
-        document.getElementById('setup-view').classList.remove('hidden');
-      }
-    }
-  </script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), KEY='mahjong-v2';
+const RULES={win:20,horse:20,rake:10,ming:30,an:20,bu:10,rob:60,robHorse:60};
+let peer,conn,hostPeerId=new URLSearchParams(location.search).get('join'),isPhoneRole=!!hostPeerId;
+let state={version:2,revision:0,game:crypto.randomUUID(),isRake:true,names:['東家','南家','西家','北家'],scores:[0,0,0,0],pot:0,seen:[]};
+let currentAction='win',selectedPlayer=null,payer=null,horseCount=0,ready=false,pending=null,lastReply=Date.now(),retryAt=0;
+const clients=new Set();
+function validState(s){return s&&s.version===2&&typeof s.game==='string'&&Number.isSafeInteger(s.revision)&&typeof s.isRake==='boolean'&&Array.isArray(s.names)&&s.names.length===4&&s.names.every(n=>typeof n==='string'&&n.length<=40)&&Array.isArray(s.scores)&&s.scores.length===4&&s.scores.every(Number.isSafeInteger)&&Number.isSafeInteger(s.pot)&&Array.isArray(s.seen);}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){$('conn-status').textContent='儲存空間不足，請保持計分板開啟';}}
+function send(c,d){if(c?.open)c.send(d);}
+function broadcast(){persist();renderBoard();clients.forEach(c=>send(c,{type:'STATE',state}));}
+function calculate(s,a){
+ if(!['win','ming','an','bu','rob'].includes(a.action)||!Number.isInteger(a.player)||a.player<0||a.player>3||!Number.isInteger(a.horses)||a.horses<0||a.horses>5||typeof a.kongWin!=='boolean')throw Error('結算資料有誤');
+ const single=['ming','rob'].includes(a.action);
+ if(single&&(!Number.isInteger(a.payer)||a.payer<0||a.payer>3||a.payer===a.player))throw Error('請揀另一位付款玩家');
+ const delta=[0,0,0,0];let pot=0;
+ const pay=(i,v)=>{delta[i]-=v;delta[a.player]+=v;};
+ const all=v=>{for(let i=0;i<4;i++)if(i!==a.player)pay(i,v);};
+ if(a.action==='ming')pay(a.payer,RULES.ming);
+ if(a.action==='an')all(RULES.an);
+ if(a.action==='bu')all(RULES.bu);
+ if(a.action==='rob')pay(a.payer,RULES.rob+a.horses*RULES.robHorse);
+ const win=a.action==='win'||(['ming','an','bu'].includes(a.action)&&a.kongWin);
+ if(win)all(RULES.win+a.horses*RULES.horse);
+ if((win||a.action==='rob')&&s.isRake){pot=a.horses*RULES.rake;delta[a.player]-=pot;}
+ return {delta,pot};
+}
+function toggleRake(v){$('btn-mode-rake').classList.toggle('active',v);$('btn-mode-norake').classList.toggle('active',!v);$('setup-view').dataset.rake=String(v);}
+function settings(){return {names:[0,1,2,3].map(i=>$('p-name-'+i).value.trim().slice(0,40)||['東家','南家','西家','北家'][i]),isRake:$('setup-view').dataset.rake!=='false'};}
+function handleStart(){const config=settings();if(isPhoneRole){submitCommand({kind:'settings',config});}else{Object.assign(state,config);state.revision++;persist();$('setup-view').classList.add('hidden');$('ipad-view').classList.remove('hidden');renderBoard();initPeer();}}
+function renderBoard(){ $('board-mode-tag').textContent='跑馬仔計分板 · '+(state.isRake?'抽水版':'不抽水版');$('board-grid').className='grid-container '+(state.isRake?'grid-5':'grid-4');$('pot-card').classList.toggle('hidden',!state.isRake);$('pot-score').textContent='$'+state.pot;state.names.forEach((n,i)=>{$('disp-name-'+i).textContent=n;const el=$('score-'+i),v=state.scores[i];el.textContent=(v>0?'+':'')+v;el.className='player-score '+(v>0?'score-pos':v<0?'score-neg':'score-zero');});}
+function resetGame(){state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('iphone-view').classList.add('hidden');$('setup-view').classList.remove('hidden');}
+function setAction(a){currentAction=a;selectedPlayer=payer=null;horseCount=0;$('kong-win').checked=false;renderControls();}
+function renderControls(){
+ $('phone-mode-text').textContent=state.isRake?'抽水版':'不抽水版';
+ document.querySelectorAll('.act-btn').forEach(b=>{b.classList.toggle('active',b.id==='act-'+currentAction);b.setAttribute('aria-pressed',String(b.id==='act-'+currentAction));});
+ $('player-pick-label').textContent={win:'自摸玩家',ming:'明槓玩家',an:'暗槓玩家',bu:'補槓玩家',rob:'搶槓者'}[currentAction];
+ const single=['ming','rob'].includes(currentAction),kong=['ming','an','bu'].includes(currentAction);
+ $('payer-box').classList.toggle('hidden',!single);$('payer-label').textContent=currentAction==='rob'?'被搶者（包晒）':'被槓玩家（付 $30）';$('kong-box').classList.toggle('hidden',!kong);
+ const hasHorse=['win','rob'].includes(currentAction)||(kong&&$('kong-win').checked);$('horse-box').classList.toggle('hidden',!hasHorse);
+ function picks(id,selected,callback){$(id).replaceChildren();state.names.forEach((n,i)=>{let b=document.createElement('button');b.type='button';b.textContent=n;b.className='opt-btn'+(selected===i?' active':'');b.setAttribute('aria-pressed',String(selected===i));b.disabled=id==='payer-buttons'&&i===selectedPlayer;b.onclick=()=>{callback(i);renderControls();};$(id).append(b);});}
+ picks('player-buttons',selectedPlayer,i=>{selectedPlayer=i;if(payer===i)payer=null;});picks('payer-buttons',payer,i=>payer=i);
+ $('horse-buttons').replaceChildren();for(let i=0;i<=5;i++){let b=document.createElement('button');b.type='button';b.textContent=i+' 隻';b.className='opt-btn'+(horseCount===i?' active':'');b.setAttribute('aria-pressed',String(horseCount===i));b.onclick=()=>{horseCount=i;renderControls();};$('horse-buttons').append(b);}
+ try{const r=calculate(state,selection());$('settlement').textContent=state.names.map((n,i)=>n+' '+(r.delta[i]>=0?'+':'')+'$'+r.delta[i]).join(' ／ ')+'；抽水 +$'+r.pot;}catch(e){$('settlement').textContent=single?'請揀收款同付款玩家':'請揀玩家';}
+ document.querySelector('.submit-btn').disabled=!ready||!!pending||selectedPlayer===null||(single&&payer===null);
+}
+function selection(){return {action:currentAction,player:selectedPlayer,payer,horses:horseCount,kongWin:$('kong-win').checked};}
+function submitAction(){try{calculate(state,selection());submitCommand({kind:'action',...selection()});}catch(e){$('feedback').textContent=e.message;}}
+function submitCommand(data){if(!ready||pending)return;$('feedback').textContent='等緊 iPad 確認…';pending={type:'COMMAND',id:crypto.randomUUID(),game:state.game,revision:state.revision,...data};send(conn,pending);renderControls();}
+function accept(c,m){
+ if(!m||typeof m!=='object')return;
+ if(m.type==='PING'){send(c,{type:'PONG'});return;}
+ if(m.type==='HELLO'){send(c,{type:'STATE',state});return;}
+ if(m.type!=='COMMAND')return;
+ if(state.seen.includes(m.id)){send(c,{type:'ACK',id:m.id,state});return;}
+ if(typeof m.id!=='string'||m.id.length>100)return;
+ if(m.game!==state.game||m.revision!==state.revision){send(c,{type:'REJECT',id:m.id,message:'分數或設定已更新，請核對後再送出',state});return;}
+ try{if(m.kind==='action'){const r=calculate(state,m);state.scores=state.scores.map((v,i)=>v+r.delta[i]);state.pot+=r.pot;}else if(m.kind==='settings'){const q=m.config;if(!q||typeof q.isRake!=='boolean'||!Array.isArray(q.names)||q.names.length!==4||!q.names.every(n=>typeof n==='string'&&n.length>0&&n.length<=40))throw Error('設定有誤');state.names=q.names.slice();state.isRake=q.isRake;}else throw Error('未知指令');state.revision++;state.seen.push(m.id);broadcast();send(c,{type:'ACK',id:m.id,state});}catch(e){send(c,{type:'REJECT',id:m.id,message:e.message,state});}
+}
+function status(t){$(isPhoneRole?'phone-status':'conn-status').textContent=t;}
+function receive(m){if(!m||typeof m!=='object')return;lastReply=Date.now();if(['STATE','ACK','REJECT'].includes(m.type)&&validState(m.state)){state=m.state;ready=true;status('● 已同步至 iPad');if(m.type==='STATE'&&pending)send(conn,pending);if(pending&&m.id===pending.id){pending=null;$('feedback').textContent=m.type==='ACK'?'已入帳 ✓':m.message;if(m.type==='ACK'){selectedPlayer=payer=null;horseCount=0;$('kong-win').checked=false;$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');}}renderControls();}}
+function dial(){if(!peer?.open||conn?.open)return;conn?.close();conn=peer.connect(hostPeerId,{reliable:true});conn.on('open',()=>{lastReply=Date.now();send(conn,{type:'HELLO'});});conn.on('data',receive);conn.on('close',()=>{ready=false;status('連線中斷，正在重連…');renderControls();});conn.on('error',()=>{ready=false;status('連線失敗，正在重試…');});}
+function initPeer(){if(typeof Peer==='undefined'){status('連線元件載入失敗，請連上網絡後重新整理');return;}let savedId;try{savedId=sessionStorage.getItem('mahjong-host-id');}catch(e){}peer=new Peer(!isPhoneRole&&savedId?savedId:undefined);peer.on('open',id=>{if(isPhoneRole){dial();return;}try{sessionStorage.setItem('mahjong-host-id',id);}catch(e){}const url=new URL(location.href);url.search='';url.searchParams.set('join',id);$('join-link').href=url.href;$('join-link').textContent=url.href;$('qrcode').replaceChildren();if(typeof QRCode!=='undefined')new QRCode($('qrcode'),{text:url.href,width:220,height:220});else status('QR Code 載入失敗，可以用連結連線');});peer.on('connection',c=>{if(isPhoneRole){c.close();return;}clients.add(c);c.on('open',()=>{status('● '+[...clients].filter(x=>x.open).length+' 部控制器已連線');$('qr-modal').classList.add('hidden');send(c,{type:'STATE',state});});c.on('data',m=>accept(c,m));c.on('close',()=>{clients.delete(c);status(clients.size?'● 控制器已連線':'控制器已離線，可重新掃碼');});});peer.on('disconnected',()=>{status('訊號連線中斷，正在重試…');});peer.on('error',e=>{status('連線問題：'+e.type+'；正在重試');if(e.type==='unavailable-id'){try{sessionStorage.removeItem('mahjong-host-id');}catch(x){}peer.destroy();setTimeout(initPeer,2000);}});}
+window.addEventListener('DOMContentLoaded',()=>{if(isPhoneRole){$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');renderControls();initPeer();}else{try{const saved=JSON.parse(localStorage.getItem(KEY));if(validState(saved))state=saved;}catch(e){}state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('start-btn').textContent=state.revision?'繼續 iPad 計分板（保留分數）':'開啟 iPad 計分板';}setInterval(()=>{if(!peer)return;if(peer.disconnected&&!peer.destroyed&&Date.now()>retryAt){retryAt=Date.now()+5000;peer.reconnect();}if(isPhoneRole){if(conn?.open){send(conn,{type:'PING'});if(Date.now()-lastReply>15000){ready=false;conn.close();renderControls();}else if(pending)send(conn,pending);}else dial();}},3000);});
+window.addEventListener('online',()=>{if(isPhoneRole)dial();else if(peer?.disconnected)peer.reconnect();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&isPhoneRole){if(conn?.open)send(conn,{type:'HELLO'});else dial();}});
+</script>
 </body>
 </html>
