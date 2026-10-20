@@ -260,9 +260,7 @@ function calculate(s,a){
  if(a.action==='bu')all(rules.bu);
  if(a.action==='rob')pay(a.payer,rules.rob+a.horses*rules.robHorse);
 
- // 被追牌
  if(a.action==='chase_normal'){
-   // 被追者（a.player）給每人 rules.chaseNormal
    for(let i=0;i<4;i++){
      if(i!==a.player){
        delta[a.player]-=rules.chaseNormal;
@@ -271,12 +269,10 @@ function calculate(s,a){
    }
  }
  if(a.action==='chase_wild'){
-   // 被追者（a.player）給其中一位追牌者（a.payer）rules.chaseWild
    delta[a.player]-=rules.chaseWild;
    delta[a.payer]+=rules.chaseWild;
  }
 
- // 特別糊牌 (自選金額：向所有人每人收取 amount)
  if(a.action==='special_win'){
    const amt=Number(a.amount);
    if(!Number.isInteger(amt)||amt<=0)throw Error('請輸入正確自選金額');
@@ -325,7 +321,18 @@ function renderControls(){
  else if(wizardStep==='action'){
    $('wizard-title').textContent='揀結算動作';
    const mainActions=['win','ming','an','bu','rob','chase','special_win'];
-   mainActions.forEach(a=>button(ACTION_NAMES[a],()=>setAction(a)));
+   mainActions.forEach(a=>{
+     button(ACTION_NAMES[a],()=>setAction(a));
+     if(a==='win'){
+       const winBtn = $('wizard-buttons').lastElementChild;
+       if(winBtn){
+         // 佔滿一行（跨兩欄），高度為1.5倍
+         winBtn.style.gridColumn = 'span 2';
+         winBtn.style.minHeight = 'clamp(96px, 21dvh, 165px)';
+         winBtn.style.fontSize = '28px';
+       }
+     }
+   });
  }
  else if(wizardStep==='chase_type'){
    $('wizard-title').textContent='揀追牌種類';
