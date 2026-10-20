@@ -96,7 +96,6 @@
     #player-buttons .opt-btn,#payer-buttons .opt-btn {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:80px;padding:10px 6px;}
     .pick-score {font-size:25px;font-variant-numeric:tabular-nums;}
     .submit-btn {position:static;}
-    /* 按 Safari 實際可用高度調整，保留所有結算控制 */
     #iphone-view {min-height:100dvh;padding:calc(54px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));}
     #iphone-view>div:first-child {padding:0;min-height:20px;margin-bottom:6px!important;}
     #iphone-view .ctrl-box {padding:8px;margin-bottom:6px;}
@@ -134,25 +133,25 @@
       #iphone-view {max-width:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 10px;align-content:start;}
       #iphone-view>div:first-child,#iphone-view .submit-btn,#feedback {grid-column:1/-1;}
     }
-#iphone-view {display:block;max-width:600px;}
-#wizard-nav {display:flex;align-items:center;gap:12px;margin:12px 0;}
-#wizard-nav .opt-btn {min-height:44px;padding:8px 14px;font-size:17px;}
-#wizard-player {font-size:18px;overflow-wrap:anywhere;}
-#wizard-title {font-size:24px;margin:14px 0;}
-#wizard-title:empty {display:none;}
-#wizard-buttons {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
-#wizard-buttons .opt-btn {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:clamp(64px,14dvh,110px);padding:12px 6px;font-size:24px;}
-#wizard-buttons[data-step="home"] {margin-top:20px;}
-#wizard-buttons[data-step="home"] .opt-btn {min-height:clamp(100px,27dvh,220px);}
-.wizard-score {font-size:clamp(26px,6vw,40px);}
-#wizard-note {font-size:15px;line-height:1.5;margin:14px 0;}
-@media(orientation:landscape) and (max-height:500px){#wizard-buttons {grid-template-columns:repeat(4,minmax(0,1fr));}#wizard-buttons .opt-btn,#wizard-buttons[data-step="home"] .opt-btn {min-height:70px;font-size:20px;}}
+    #iphone-view {display:block;max-width:600px;}
+    #wizard-nav {display:flex;align-items:center;gap:12px;margin:12px 0;}
+    #wizard-nav .opt-btn {min-height:44px;padding:8px 14px;font-size:17px;}
+    #wizard-player {font-size:18px;overflow-wrap:anywhere;}
+    #wizard-title {font-size:24px;margin:14px 0;}
+    #wizard-title:empty {display:none;}
+    #wizard-buttons {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+    #wizard-buttons .opt-btn {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:clamp(64px,14dvh,110px);padding:12px 6px;font-size:24px;}
+    #wizard-buttons[data-step="home"] {margin-top:20px;}
+    #wizard-buttons[data-step="home"] .opt-btn {min-height:clamp(100px,27dvh,220px);}
+    .wizard-score {font-size:clamp(26px,6vw,40px);}
+    #wizard-note {font-size:15px;line-height:1.5;margin:14px 0;}
+    @media(orientation:landscape) and (max-height:500px){#wizard-buttons {grid-template-columns:repeat(4,minmax(0,1fr));}#wizard-buttons .opt-btn,#wizard-buttons[data-step="home"] .opt-btn {min-height:70px;font-size:20px;}}
     @media(orientation:landscape) and (max-height:500px){#wizard-nav {margin:4px 0;}#wizard-title {margin:6px 0;font-size:20px;}#wizard-note {margin:6px 0;font-size:13px;}}
     #results-btn,#options-btn {display:none!important;}
     #room-toolbar {position:fixed;top:0;left:0;right:0;z-index:110;display:flex;gap:5px;justify-content:center;padding:calc(5px + env(safe-area-inset-top)) 6px 5px;background:#121212;}
     #room-toolbar button {flex:1;max-width:150px;min-width:0;min-height:44px;border:0;border-radius:8px;background:#2c2c2e;color:white;font-size:13px;padding:5px;}
     dialog {margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:20px;width:min(94vw,600px);max-height:88dvh;overflow:auto;}
-    input[type=password] {width:100%;min-height:48px;font-size:18px;background:#2c2c2e;color:white;border:1px solid #555;border-radius:8px;padding:10px;margin-top:10px;}
+    input[type=password],input[type=number] {width:100%;min-height:48px;font-size:18px;background:#2c2c2e;color:white;border:1px solid #555;border-radius:8px;padding:10px;margin-top:10px;}
     #ipad-view {padding-top:calc(60px + env(safe-area-inset-top));}
     .board-header {padding:10px;}
     .board-header h2 {font-size:20px;}
@@ -174,7 +173,6 @@
   <dialog id="results-menu" aria-labelledby="results-title" style="margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:20px;width:min(92vw,480px);max-height:90dvh;overflow:auto"><h2 id="results-title" style="margin-bottom:16px">目前結果</h2><div id="results-players" class="btn-group grid-4-btn" aria-live="polite"></div><div class="ctrl-box" style="margin-top:12px;background:#241d08;color:#ffd60a"><div>抽水箱</div><div id="results-pot" style="font-size:30px;font-weight:bold"></div></div><p id="results-status" class="hint"></p><button class="btn-start" onclick="document.getElementById('results-menu').close()">返回計分</button></dialog>
   <button id="options-btn" class="opt-btn hidden" aria-label="開啟選項" onclick="openOptions()" style="position:fixed;right:max(10px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));z-index:110;min-height:44px;font-size:16px;padding:8px 12px">☰ 選項</button>
   <dialog id="options-menu" style="margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:22px;width:min(92vw,440px);max-height:90dvh;overflow:auto"><h2>選項</h2><button id="switch-room-btn" class="opt-btn" style="width:100%;margin-top:12px" onclick="leaveToLobby()">返回本機房間列表（保留資料）</button><button id="close-room-btn" class="reset-btn" style="width:100%;min-height:48px" onclick="closeLocalRoom()">關閉房間並清除資料</button><button class="opt-btn" style="width:100%;margin-top:12px" onclick="document.getElementById('options-menu').close();resetGame()">設定玩家名稱／玩法</button><button class="reset-btn" onclick="zeroScores()" style="min-height:60px;font-size:19px">將計分重設至 0</button><p class="hint">四位玩家分數同抽水箱歸零，保留玩家名稱及玩法。</p><button class="opt-btn" style="width:100%;margin-top:16px" onclick="document.getElementById('options-menu').close()">返回</button><details style="margin-top:20px"><summary style="font-size:20px;padding:12px 0;cursor:pointer">自訂計分選項</summary><p class="hint">每家／單一付款者嘅金額如下。只影響之後嘅結算。</p><div id="rule-fields"></div><button id="save-rules" class="btn-start" onclick="saveRules()">儲存計分設定</button></details><p id="option-feedback" role="status"></p></dialog>
-
 
   <!-- 1. 開局設定介面 -->
   <div id="setup-view" class="hidden">
@@ -214,28 +212,28 @@
       <div class="player-card"><div class="player-name" id="disp-name-2">西家</div><div id="score-2" class="player-score score-zero">0</div></div>
       <div class="player-card"><div class="player-name" id="disp-name-3">北家</div><div id="score-3" class="player-score score-zero">0</div></div>
       
-      <!-- 抽水箱 -->
       <div id="pot-card" class="player-card pot-card hidden">
         <div class="pot-title">💰 抽水箱</div>
         <div id="pot-score" class="pot-amount">$0</div>
       </div>
     </div>
-
   </div>
 
   <!-- 3. iPhone 控制端 -->
-<div id="iphone-view" class="hidden"><div style="color:#30d158;text-align:center"><span id="phone-status">連線中…</span> · <span id="phone-mode-text"></span></div><div id="wizard-nav"><button class="opt-btn" onclick="wizardBack()">‹ 返回</button><span id="wizard-player"></span></div><h2 id="wizard-title"></h2><div id="wizard-buttons" class="btn-group"></div><p id="wizard-note" class="hint"></p><p id="feedback" role="status"></p><input id="kong-win" type="checkbox" hidden></div>
+  <div id="iphone-view" class="hidden"><div style="color:#30d158;text-align:center"><span id="phone-status">連線中…</span> · <span id="phone-mode-text"></span></div><div id="wizard-nav"><button class="opt-btn" onclick="wizardBack()">‹ 返回</button><span id="wizard-player"></span></div><h2 id="wizard-title"></h2><div id="wizard-buttons" class="btn-group"></div><p id="wizard-note" class="hint"></p><p id="feedback" role="status"></p><input id="kong-win" type="checkbox" hidden></div>
+
 <script>
 'use strict';
 const $=id=>document.getElementById(id), KEY='mahjong-v2';
 const roomParam=new URLSearchParams(location.search).get('room');const localRoomSlot=['1','2','3'].includes(roomParam)?roomParam:null;const roomStorageKey=localRoomSlot?'mahjong-local-room-'+localRoomSlot:null;let persistedPeerId=null,releaseRoomLock=null,roomLockHeld=false;
-const RULES={win:20,horse:20,rake:10,ming:30,an:20,bu:10,rob:60,robHorse:60};
+const RULES={win:20,horse:20,rake:10,ming:30,an:20,bu:10,rob:60,robHorse:60,chaseNormal:10,chaseWild:30};
 let soloMode=false;let canEdit=false,boardMode=false,roomStarted=false,roomSecret=null,authChallenge=null,authBusy=false,shareURL='';const authSessions=new WeakMap();const localChannel={open:true,send:m=>receive(m)};
 let peer,conn,hostPeerId=new URLSearchParams(location.search).get('join'),isPhoneRole=!!hostPeerId;
 let state={version:2,revision:0,game:crypto.randomUUID(),isRake:true,names:['東家','南家','西家','北家'],scores:[0,0,0,0],pot:0,seen:[]};
 let connectStarted=0;
-let currentAction='win',selectedPlayer=null,payer=null,horseCount=0,ready=false,pending=null,lastReply=Date.now(),retryAt=0;
+let currentAction='win',selectedPlayer=null,payer=null,horseCount=0,customAmount=0,ready=false,pending=null,lastReply=Date.now(),retryAt=0;
 const clients=new Set();
+
 function validState(s){return s&&s.version===2&&typeof s.game==='string'&&Number.isSafeInteger(s.revision)&&typeof s.isRake==='boolean'&&Array.isArray(s.names)&&s.names.length===4&&s.names.every(n=>typeof n==='string'&&n.length<=40)&&Array.isArray(s.scores)&&s.scores.length===4&&s.scores.every(Number.isSafeInteger)&&Number.isSafeInteger(s.pot)&&Array.isArray(s.seen);}
 function readLocalRoom(slot){const key='mahjong-local-room-'+slot;let error=false;for(const suffix of ['', '-backup']){try{const raw=localStorage.getItem(key+suffix);if(!raw)continue;const record=JSON.parse(raw);if(record.closed===true)return null;if(record.format===1&&validState(record.state)&&(record.secret===null||(record.secret&&typeof record.secret.key==='string')))return {...record,recovered:suffix==='-backup'};error=true;}catch(e){error=true;}}if(error)throw Error('房間資料無法讀取。請勿建立新房覆蓋，先保留瀏覽器資料。');return null;}
 function persist(){if(isPhoneRole||!roomStorageKey)return;const record={format:1,state,secret:roomSecret,peerId:persistedPeerId,savedAt:new Date().toISOString()};const encoded=JSON.stringify(record);try{const old=localStorage.getItem(roomStorageKey);if(old){let previous;try{previous=JSON.parse(old);}catch(e){}if(previous?.format===1&&validState(previous.state))localStorage.setItem(roomStorageKey+'-backup',old);}localStorage.setItem(roomStorageKey,encoded);if(localStorage.getItem(roomStorageKey)!==encoded)throw Error('write failed');}catch(e){throw Error('未能儲存，今次操作未入帳。請釋放儲存空間並匯出紀錄後再試。');}}
@@ -246,23 +244,51 @@ function closeLocalRoom(){if(isPhoneRole||!canEdit||!roomStorageKey||pending)ret
 function send(c,d){if(c?.open){try{c.send(d);return true;}catch(e){}}return false;}
 function snapshot(c){return authSessions.get(c)?.editor||c===localChannel?state:{...state,history:[],seen:[]};}
 function broadcast(){renderBoard();if(roomStarted)renderControls();clients.forEach(c=>send(c,{type:'STATE',state:snapshot(c)}));}
+
 function calculate(s,a){
  const rules={...RULES,...s.rules};
- if(!['win','ming','an','bu','rob'].includes(a.action)||!Number.isInteger(a.player)||a.player<0||a.player>3||!Number.isInteger(a.horses)||a.horses<0||a.horses>5||typeof a.kongWin!=='boolean')throw Error('結算資料有誤');
- const single=['ming','rob'].includes(a.action);
- if(single&&(!Number.isInteger(a.payer)||a.payer<0||a.payer>3||a.payer===a.player))throw Error('請揀另一位付款玩家');
+ const validActions=['win','ming','an','bu','rob','chase_normal','chase_wild','special_win'];
+ if(!validActions.includes(a.action)||!Number.isInteger(a.player)||a.player<0||a.player>3||!Number.isInteger(a.horses)||a.horses<0||a.horses>5||typeof a.kongWin!=='boolean')throw Error('結算資料有誤');
+ const single=['ming','rob','chase_wild'].includes(a.action);
+ if(single&&(!Number.isInteger(a.payer)||a.payer<0||a.payer>3||a.payer===a.player))throw Error('請揀另一位玩家');
  const delta=[0,0,0,0];let pot=0;
  const pay=(i,v)=>{delta[i]-=v;delta[a.player]+=v;};
  const all=v=>{for(let i=0;i<4;i++)if(i!==a.player)pay(i,v);};
+
  if(a.action==='ming')pay(a.payer,rules.ming);
  if(a.action==='an')all(rules.an);
  if(a.action==='bu')all(rules.bu);
  if(a.action==='rob')pay(a.payer,rules.rob+a.horses*rules.robHorse);
+
+ // 被追牌
+ if(a.action==='chase_normal'){
+   // 被追者（a.player）給每人 rules.chaseNormal
+   for(let i=0;i<4;i++){
+     if(i!==a.player){
+       delta[a.player]-=rules.chaseNormal;
+       delta[i]+=rules.chaseNormal;
+     }
+   }
+ }
+ if(a.action==='chase_wild'){
+   // 被追者（a.player）給其中一位追牌者（a.payer）rules.chaseWild
+   delta[a.player]-=rules.chaseWild;
+   delta[a.payer]+=rules.chaseWild;
+ }
+
+ // 特別糊牌 (自選金額：向所有人每人收取 amount)
+ if(a.action==='special_win'){
+   const amt=Number(a.amount);
+   if(!Number.isInteger(amt)||amt<=0)throw Error('請輸入正確自選金額');
+   all(amt);
+ }
+
  const win=a.action==='win'||(['ming','an','bu'].includes(a.action)&&a.kongWin);
  if(win){const selfDraw=rules.win+a.horses*rules.horse;if(a.action==='ming')pay(a.payer,selfDraw*3);else all(selfDraw);}
  if((win||a.action==='rob')&&s.isRake){pot=a.horses*rules.rake;delta[a.player]-=pot;}
  return {delta,pot};
 }
+
 function toggleRake(v){$('btn-mode-rake').classList.toggle('active',v);$('btn-mode-norake').classList.toggle('active',!v);$('setup-view').dataset.rake=String(v);}
 function settings(){return {names:[0,1,2,3].map(i=>$('p-name-'+i).value.trim().slice(0,40)||['東家','南家','西家','北家'][i]),isRake:$('setup-view').dataset.rake!=='false'};}
 async function handleStart(){
@@ -275,28 +301,78 @@ async function handleStart(){
 }
 function renderBoard(){ $('board-mode-tag').textContent='跑馬仔計分板 · '+(state.isRake?'抽水版':'不抽水版');$('board-grid').className='grid-container '+(state.isRake?'grid-5':'grid-4');$('pot-card').classList.toggle('hidden',!state.isRake);$('pot-score').textContent='$'+state.pot;state.names.forEach((n,i)=>{$('disp-name-'+i).textContent=n;const el=$('score-'+i),v=state.scores[i];el.textContent=(v>0?'+':'')+v;el.className='player-score '+(v>0?'score-pos':v<0?'score-neg':'score-zero');});}
 function resetGame(){if(!canEdit)return;wizardHome();$('password-setup').classList.add('hidden');$('ipad-view').classList.add('hidden');state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('iphone-view').classList.add('hidden');$('setup-view').classList.remove('hidden');}
+
 let wizardStep='home',wizardHistory=[];
-const ACTION_NAMES={win:'自摸',ming:'明槓',an:'暗槓',bu:'補槓',rob:'搶槓'};
+const ACTION_NAMES={win:'自摸',ming:'明槓',an:'暗槓',bu:'補槓',rob:'搶槓',chase:'被追牌',chase_normal:'普通追牌',chase_wild:'百搭追牌',special_win:'特別糊牌'};
 function wizardGo(step){wizardHistory.push(wizardStep);wizardStep=step;renderControls();}
 function wizardBack(){if(pending)return;wizardStep=wizardHistory.pop()||'home';$('feedback').textContent='';renderControls();}
-function wizardHome(){wizardStep='home';wizardHistory=[];selectedPlayer=payer=null;horseCount=0;$('kong-win').checked=false;}
-function setAction(a){currentAction=a;payer=null;horseCount=0;$('kong-win').checked=false;wizardGo(['ming','rob'].includes(a)?'payer':a==='win'?'horse':'kong');}
+function wizardHome(){wizardStep='home';wizardHistory=[];selectedPlayer=payer=null;horseCount=0;customAmount=0;$('kong-win').checked=false;}
+function setAction(a){
+  currentAction=a;payer=null;horseCount=0;$('kong-win').checked=false;
+  if(a==='chase'){wizardGo('chase_type');return;}
+  if(a==='special_win'){wizardGo('special_amount');return;}
+  wizardGo(['ming','rob'].includes(a)?'payer':a==='win'?'horse':'kong');
+}
 function wizardFinish(){if(pending||!canEdit)return;if(!ready){$('feedback').textContent='未同步，未有入帳。請等連線後再揀。';return;}wizardGo('sending');submitAction();}
+
 function renderControls(){
  updateRoomUI();if($('results-menu').open)renderResults();$('phone-mode-text').textContent=state.isRake?'抽水版':'不抽水版';
  $('wizard-nav').classList.toggle('hidden',wizardStep==='home');$('wizard-nav').querySelector('button').disabled=!!pending;$('wizard-player').textContent=selectedPlayer===null?'':state.names[selectedPlayer]+(wizardStep==='action'?'':' · '+ACTION_NAMES[currentAction]);
  $('wizard-buttons').replaceChildren();$('wizard-buttons').dataset.step=wizardStep;$('wizard-note').textContent='';const rules={...RULES,...state.rules};
  function button(label,callback,score,disabled=false){const b=document.createElement('button');b.type='button';b.className='opt-btn';const t=document.createElement('span');t.textContent=label;b.append(t);if(score!==undefined){const v=document.createElement('span');v.className='wizard-score '+(score>0?'score-pos':score<0?'score-neg':'score-zero');v.textContent=(score<0?'−':score>0?'+':'')+'$'+Math.abs(score);b.append(v);}b.disabled=disabled||!!pending||!canEdit;b.onclick=callback;$('wizard-buttons').append(b);}
- if(wizardStep==='home'){$('wizard-title').textContent='';state.names.forEach((n,i)=>button(n,()=>{selectedPlayer=i;payer=null;horseCount=0;$('kong-win').checked=false;$('feedback').textContent='';wizardGo('action');},state.scores[i]));}
- else if(wizardStep==='action'){$('wizard-title').textContent='揀結算動作';Object.entries(ACTION_NAMES).forEach(([a,n])=>button(n,()=>setAction(a)));}
+
+ if(wizardStep==='home'){$('wizard-title').textContent='';state.names.forEach((n,i)=>button(n,()=>{selectedPlayer=i;payer=null;horseCount=0;customAmount=0;$('kong-win').checked=false;$('feedback').textContent='';wizardGo('action');},state.scores[i]));}
+ else if(wizardStep==='action'){
+   $('wizard-title').textContent='揀結算動作';
+   const mainActions=['win','ming','an','bu','rob','chase','special_win'];
+   mainActions.forEach(a=>button(ACTION_NAMES[a],()=>setAction(a)));
+ }
+ else if(wizardStep==='chase_type'){
+   $('wizard-title').textContent='揀追牌種類';
+   button('普通追牌 (每家收$'+rules.chaseNormal+')',()=>{
+     currentAction='chase_normal';
+     wizardFinish();
+   });
+   button('百搭追牌 (一位收$'+rules.chaseWild+')',()=>{
+     currentAction='chase_wild';
+     wizardGo('chase_winner');
+   });
+   $('wizard-note').textContent='普通追牌：被追者給其餘三家每人 $'+rules.chaseNormal+'；百搭追牌：給其中一位追牌者 $'+rules.chaseWild+'。';
+ }
+ else if(wizardStep==='chase_winner'){
+   $('wizard-title').textContent='揀追牌得益者 (收款玩家)';
+   state.names.forEach((n,i)=>button(n,()=>{payer=i;wizardFinish();},state.scores[i],i===selectedPlayer));
+   $('wizard-note').textContent='收款者會獲得 $'+rules.chaseWild+'，被追者支付 $'+rules.chaseWild+'。';
+ }
+ else if(wizardStep==='special_amount'){
+   $('wizard-title').textContent='輸入每家需付金額';
+   const container=document.createElement('div');
+   container.style.cssText='grid-column:1/-1;display:flex;flex-direction:column;gap:12px;';
+   const input=document.createElement('input');
+   input.type='number';input.inputMode='numeric';input.placeholder='金額 (每家付)';input.id='special-amt-input';
+   input.style.cssText='width:100%;min-height:54px;font-size:22px;background:#2c2c2e;color:white;border:1px solid #777;border-radius:10px;padding:12px;text-align:center;';
+   const confirmBtn=document.createElement('button');
+   confirmBtn.type='button';confirmBtn.className='submit-btn';confirmBtn.textContent='確認收取 (向每家收取)';
+   confirmBtn.onclick=()=>{
+     const val=parseInt(input.value,10);
+     if(!val||val<=0){$('feedback').textContent='請輸入有效金額';return;}
+     customAmount=val;
+     wizardFinish();
+   };
+   container.append(input,confirmBtn);
+   $('wizard-buttons').append(container);
+   $('wizard-note').textContent=state.names[selectedPlayer]+' 將向其餘三家各收取該金額（共收 3 倍）。';
+ }
  else if(wizardStep==='payer'){$('wizard-title').textContent=currentAction==='rob'?'揀被搶者（包晒）':'揀被槓玩家';state.names.forEach((n,i)=>button(n,()=>{payer=i;wizardGo(currentAction==='rob'?'horse':'kong');},state.scores[i],i===selectedPlayer));$('wizard-note').textContent=currentAction==='ming'?'被槓者一人付 $'+rules.ming:'被搶者付 $'+rules.rob+'＋每馬 $'+rules.robHorse;}
  else if(wizardStep==='kong'){$('wizard-title').textContent='有冇槓上自摸？';button('冇，只計'+ACTION_NAMES[currentAction],()=>{$('kong-win').checked=false;horseCount=0;wizardFinish();});button('有，再揀中馬隻數',()=>{$('kong-win').checked=true;wizardGo('horse');});$('wizard-note').textContent='揀「冇」即時計槓錢；揀「有」會加自摸。'+(currentAction==='ming'?'出槓者一人包晒，另外兩家唔使付。':'另外三家每家都要付。')+'';}
  else if(wizardStep==='horse'){$('wizard-title').textContent='揀中馬隻數';for(let i=0;i<=5;i++)button(i+' 隻',()=>{horseCount=i;wizardFinish();});$('wizard-note').textContent='揀好即時入帳並返回玩家首頁。'+(currentAction==='rob'?'被搶者包底數 $'+rules.rob+'；每馬 $'+rules.robHorse:currentAction==='ming'?'出槓者包槓錢 $'+rules.ming+'＋自摸底數 $'+(rules.win*3)+'；每馬 $'+(rules.horse*3):'每家底數 $'+rules.win+'；每馬每家 $'+rules.horse)+(state.isRake?'；每馬抽 $'+rules.rake:'；不抽水');}
  else {$('wizard-title').textContent=pending?'正在入帳…':'未完成入帳';if(!pending)button('重試入帳',()=>submitAction());$('wizard-note').textContent='收到確認後會自動返回玩家首頁。';}
 }
-function selection(){return {action:currentAction,player:selectedPlayer,payer,horses:horseCount,kongWin:$('kong-win').checked};}
+
+function selection(){return {action:currentAction,player:selectedPlayer,payer,horses:horseCount,amount:customAmount,kongWin:$('kong-win').checked};}
 function submitAction(){try{calculate(state,selection());submitCommand({kind:'action',...selection()});}catch(e){$('feedback').textContent=e.message;}}
 function submitCommand(data){if(!ready||pending||!canEdit){$('feedback').textContent='未解鎖或未同步，未有入帳';return;}pending={type:'COMMAND',id:crypto.randomUUID(),game:state.game,revision:state.revision,...data};if(!isPhoneRole){accept(localChannel,pending);}else{send(conn,pending);$('feedback').textContent='等緊房主確認…';renderControls();}}
+
 async function accept(c,m){
  if(!m||typeof m!=='object')return;
  if(m.type==='PING'){send(c,{type:'PONG'});return;}
@@ -309,17 +385,19 @@ async function accept(c,m){
  if(m.game!==state.game||m.revision!==state.revision){send(c,{type:'REJECT',id:m.id,message:'分數或設定已更新，請核對後再送出',state});return;}
  const previousState=structuredClone(state);try{const before={names:state.names.slice(),scores:state.scores.slice(),pot:state.pot,isRake:state.isRake,rules:{...RULES,...state.rules}};if(m.kind==='rules'){if(!validRules(m.rules))throw Error('計分設定有誤');state.rules=Object.fromEntries(Object.keys(RULES).map(k=>[k,m.rules[k]]));}else if(m.kind==='reset'){state.scores=[0,0,0,0];state.pot=0;}else if(m.kind==='action'){const r=calculate(state,m);state.scores=state.scores.map((v,i)=>v+r.delta[i]);state.pot+=r.pot;}else if(m.kind==='settings'){const q=m.config;if(!q||typeof q.isRake!=='boolean'||!Array.isArray(q.names)||q.names.length!==4||!q.names.every(n=>typeof n==='string'&&n.length>0&&n.length<=40))throw Error('設定有誤');state.names=q.names.slice();state.isRake=q.isRake;}else throw Error('未知指令');state.revision++;state.seen.push(m.id);appendLog(m,before,c===localChannel?'房主':'已解鎖裝置');persist();broadcast();send(c,{type:'ACK',id:m.id,state});}catch(e){state=previousState;send(c,{type:'REJECT',id:m.id,message:e.message,state});}
 }
+
 function status(t){$('phone-status').textContent=t;$('conn-status').textContent=t;}
 function receive(m){if(!m||typeof m!=='object')return;lastReply=Date.now();if(m.type==='ROOM_CLOSED'){ready=false;canEdit=false;pending=null;peer?.destroy();$('phone-status').textContent='房主已關閉房間';$('conn-status').textContent='房主已關閉房間';$('feedback').textContent='房間已結束，請用新房間 QR Code 加入';renderControls();return;}if(m.type==='CHALLENGE'){authChallenge=m;canEdit=false;updateRoomUI();return;}if(m.type==='AUTH_RESULT'){authBusy=false;$('unlock-submit').disabled=false;if(m.ok){canEdit=true;$('unlock-password').value='';$('unlock-menu').close();boardMode=false;}else{$('unlock-feedback').textContent=m.message;}updateRoomUI();return;}if(['STATE','ACK','REJECT'].includes(m.type)&&validState(m.state)){state=m.state;ready=true;status(isPhoneRole?(canEdit?'● 已同步 · 可計分':'● 已同步 · 只睇分'):'● 房主 · 可計分');if(m.type==='STATE'&&pending&&canEdit)send(conn,pending);if(pending&&m.id===pending.id){pending=null;$('feedback').textContent=m.type==='ACK'?'已完成 ✓':m.message;$('option-feedback').textContent=m.type==='ACK'?'已完成 ✓':m.message;if(m.type==='ACK'){wizardHome();$('setup-view').classList.add('hidden');$('iphone-view').classList.remove('hidden');}}renderControls();}}
 function dial(){if(!peer?.open||conn?.open)return;if(conn&&Date.now()-connectStarted<25000)return;const previous=conn;conn=null;previous?.close();connectStarted=Date.now();status('正在連接房主，請保持房主頁面開啟…');const c=peer.connect(hostPeerId,{reliable:true,serialization:'json'});conn=c;c.on('open',()=>{if(conn!==c)return;lastReply=Date.now();status('已連接，正在同步分數…');send(c,{type:'HELLO'});});c.on('data',m=>{if(conn===c)receive(m);});c.on('close',()=>{if(conn!==c)return;conn=null;connectStarted=0;ready=false;canEdit=false;authChallenge=null;status('連線中斷，正在重連…');renderControls();});c.on('error',()=>{if(conn!==c)return;conn=null;c.close();connectStarted=0;ready=false;canEdit=false;status('連線失敗，請確認房主開緊及重新掃最新 QR Code');renderControls();});setTimeout(()=>{if(conn===c&&!c.open)status('未能連上房主，正在重試。請兩部裝置連同一 Wi-Fi，再掃最新 QR Code');},20000);}
+
 function initPeer(){status(isPhoneRole?'正在連接連線服務…':'正在準備房間連線…');if(typeof Peer==='undefined'){status('連線元件載入失敗，請連上網絡後重新整理');return;}let savedId;try{savedId=persistedPeerId;}catch(e){}peer=new Peer(!isPhoneRole&&savedId?savedId:undefined);peer.on('open',id=>{if(isPhoneRole){dial();return;}status('房間已準備好，可掃碼連線');try{persistedPeerId=id;persist();}catch(e){}const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('join',id);shareURL=url.href;renderQR();});peer.on('connection',c=>{if(isPhoneRole){c.close();return;}clients.add(c);c.on('open',()=>{status('● '+[...clients].filter(x=>x.open).length+' 部裝置已連線');send(c,{type:'STATE',state:snapshot(c)});});c.on('data',m=>accept(c,m));c.on('close',()=>{clients.delete(c);status(clients.size?'● 控制器已連線':'控制器已離線，可重新掃碼');});});peer.on('disconnected',()=>{status('訊號連線中斷，正在重試…');});peer.on('error',e=>{status('連線問題：'+e.type+'；正在重試');if(e.type==='unavailable-id'){try{persistedPeerId=null;}catch(x){}peer.destroy();setTimeout(initPeer,2000);}});}
-const RULE_LABELS={win:'自摸：每家底數',horse:'自摸：每馬每家',rake:'抽水版：贏家每馬抽水',ming:'明槓：被槓者一人付',an:'暗槓：每家付',bu:'補槓：每家付',rob:'搶槓：被搶者包底數',robHorse:'搶槓：每馬被搶者付'};
+
+const RULE_LABELS={win:'自摸：每家底數',horse:'自摸：每馬每家',rake:'抽水版：贏家每馬抽水',ming:'明槓：被槓者一人付',an:'暗槓：每家付',bu:'補槓：每家付',rob:'搶槓：被搶者包底數',robHorse:'搶槓：每馬被搶者付',chaseNormal:'普通追牌：每家收',chaseWild:'百搭追牌：指定追牌者收'};
 function validRules(r){return r&&Object.keys(RULES).every(k=>Number.isSafeInteger(r[k])&&r[k]>=0&&r[k]<=100000)&&r.rake<=Math.min(r.horse*3,r.robHorse);}
 function renderResults(){$('results-players').replaceChildren();state.names.forEach((name,i)=>{const card=document.createElement('div');card.className='opt-btn';const label=document.createElement('div');label.textContent=name;const score=document.createElement('div');const v=state.scores[i];score.textContent=(v<0?'−':v>0?'+':'')+'$'+Math.abs(v);score.className=v>0?'score-pos':v<0?'score-neg':'score-zero';score.style.fontSize='30px';card.append(label,score);$('results-players').append(card);});$('results-pot').textContent='$'+state.pot;$('results-status').textContent=soloMode?'本機最新結果':ready?'已同步至房主':'連線中斷或同步中，以上係最後收到嘅分數';}
 function showResults(){renderResults();$('results-menu').showModal();}
 function openOptions(){$('options-menu').querySelectorAll('button,details').forEach(el=>{if(el.textContent==='返回')return;el.classList.toggle('hidden',!canEdit);});$('close-room-btn').classList.toggle('hidden',isPhoneRole||!canEdit);$('switch-room-btn').classList.remove('hidden');$('option-feedback').textContent='';$('rule-fields').replaceChildren();Object.keys(RULES).forEach(k=>{const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0';const text=document.createElement('span');text.textContent=RULE_LABELS[k]+' $';const input=document.createElement('input');input.id='rule-'+k;input.type='number';input.min='0';input.max='100000';input.step='1';input.inputMode='numeric';input.value=(state.rules||RULES)[k];input.style.cssText='width:100px;min-height:44px;font-size:18px;background:#303033;color:white;border:1px solid #777;border-radius:8px;padding:8px';label.append(text,input);$('rule-fields').append(label);});$('options-menu').showModal();}
 function saveRules(){if(!canEdit)return;const rules={};for(const k of Object.keys(RULES)){const value=$('rule-'+k).value;if(value.trim()===''){$('option-feedback').textContent='請填齊所有金額';return;}rules[k]=Number(value);}if(!validRules(rules)){$('option-feedback').textContent='請用 0–100000 整數；每馬抽水唔可以超過每馬總收入';return;}submitCommand({kind:'rules',rules});}
-
 
 function zeroScores(){if(!canEdit||!ready||pending){$('option-feedback').textContent='請先解鎖及等同步完成';return;}if(confirm('確定將四位玩家分數同抽水箱歸零？操作紀錄會保留。'))submitCommand({kind:'reset'});}
 window.addEventListener('DOMContentLoaded',()=>{if(isPhoneRole){roomStarted=true;boardMode=true;$('room-toolbar').classList.remove('hidden');$('setup-view').classList.add('hidden');renderControls();initPeer();}else{if(!localRoomSlot){try{if(!localStorage.getItem('mahjong-local-room-1')){const legacy=JSON.parse(localStorage.getItem(KEY));const secret=legacy?JSON.parse(localStorage.getItem('mahjong-room-secret-'+legacy.game)):null;if(validState(legacy)){localStorage.setItem('mahjong-local-room-1',JSON.stringify({format:1,state:legacy,secret,peerId:null,savedAt:new Date().toISOString()}));}}}catch(e){}showLocalLobby();return;}
@@ -342,15 +420,44 @@ function updateRoomUI(){if(!roomStarted)return;$('room-toolbar').classList.remov
 function toggleBoard(){if(!roomStarted)return;boardMode=!boardMode;wizardHome();renderControls();}
 function renderQR(){if(isPhoneRole){const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('join',hostPeerId);shareURL=url.href;}$('room-link').textContent=shareURL||'連線準備中…';$('room-link').href=shareURL||'#';$('room-qrcode').replaceChildren();if(shareURL&&typeof QRCode!=='undefined')new QRCode($('room-qrcode'),{text:shareURL,width:220,height:220});}
 function openRoomQR(){renderQR();$('room-qr').showModal();}
-function appendLog(m,before,source){state.history=state.history||[];state.history.push({id:m.id,time:new Date().toISOString(),revision:state.revision,kind:m.kind,action:m.kind==='action'?m.action:null,player:m.kind==='action'?m.player:null,payer:m.kind==='action'?m.payer:null,horses:m.kind==='action'?m.horses:0,kongWin:m.kind==='action'?m.kongWin:false,source,before,after:{names:state.names.slice(),scores:state.scores.slice(),pot:state.pot,isRake:state.isRake,rules:{...RULES,...state.rules}}});}
+
+function appendLog(m,before,source){
+  state.history=state.history||[];
+  state.history.push({
+    id:m.id,
+    time:new Date().toISOString(),
+    revision:state.revision,
+    kind:m.kind,
+    action:m.kind==='action'?m.action:null,
+    player:m.kind==='action'?m.player:null,
+    payer:m.kind==='action'?m.payer:null,
+    horses:m.kind==='action'?m.horses:0,
+    amount:m.kind==='action'?m.amount:null,
+    kongWin:m.kind==='action'?m.kongWin:false,
+    source,
+    before,
+    after:{names:state.names.slice(),scores:state.scores.slice(),pot:state.pot,isRake:state.isRake,rules:{...RULES,...state.rules}}
+  });
+}
+
 function hkTime(iso){return new Date(iso).toLocaleString('zh-HK',{timeZone:'Asia/Hong_Kong',hour12:false});}
 function logTitle(e){return e.kind==='action'?ACTION_NAMES[e.action]+(e.kongWin?'＋槓上自摸':''):({reset:'分數歸零',rules:'修改計分設定',settings:'修改玩家／玩法',opening:'開始紀錄（沿用當時分數）'}[e.kind]||e.kind);}
-function logDetails(e){const names=e.before.names;return (e.player!==null&&e.player!==undefined?'收款：'+names[e.player]+'；':'')+(e.payer!==null&&e.payer!==undefined?'付款：'+names[e.payer]+'；':'')+(e.kind==='action'?'中馬 '+e.horses+' 隻；':'')+names.map((n,i)=>n+' '+signed(e.after.scores[i]-e.before.scores[i])).join(' ／ ')+'；抽水 '+signed(e.after.pot-e.before.pot);}
+function logDetails(e){
+  const names=e.before.names;
+  let rolePrefix='';
+  if(e.action==='chase_normal') rolePrefix='被追牌：'+names[e.player]+'（每家收$10）；';
+  else if(e.action==='chase_wild') rolePrefix='被追牌：'+names[e.player]+'；收款：'+names[e.payer]+'（$30）；';
+  else if(e.action==='special_win') rolePrefix='特別糊牌：'+names[e.player]+'（每家收 $'+e.amount+'）；';
+  else {
+    rolePrefix=(e.player!==null&&e.player!==undefined?'收款：'+names[e.player]+'；':'')+(e.payer!==null&&e.payer!==undefined?'付款：'+names[e.payer]+'；':'')+(e.kind==='action'?'中馬 '+e.horses+' 隻；':'');
+  }
+  return rolePrefix+names.map((n,i)=>n+' '+signed(e.after.scores[i]-e.before.scores[i])).join(' ／ ')+'；抽水 '+signed(e.after.pot-e.before.pot);
+}
 function signed(n){return (n<0?'−':n>0?'+':'')+'$'+Math.abs(n);}
 function openHistory(){if(!canEdit)return;renderHistory();$('history-menu').showModal();}
 function renderHistory(){$('history-list').replaceChildren();const logs=state.history||[];if(!logs.length){$('history-list').textContent='未有紀錄。舊版操作無法追溯，之後每筆會自動記錄。';return;}[...logs].reverse().forEach(e=>{const item=document.createElement('article');item.className='history-entry';const title=document.createElement('strong');title.textContent='#'+e.revision+' '+logTitle(e);const time=document.createElement('div');time.textContent=hkTime(e.time)+' · '+e.source;const detail=document.createElement('div');detail.textContent=logDetails(e);item.append(title,time,detail);if(e.kind==='rules'||e.kind==='settings'){const changes=document.createElement('p');changes.textContent=e.kind==='rules'?Object.keys(RULES).filter(k=>e.before.rules[k]!==e.after.rules[k]).map(k=>RULE_LABELS[k]+': $'+e.before.rules[k]+' → $'+e.after.rules[k]).join('；'):'名稱：'+e.before.names.join('、')+' → '+e.after.names.join('、')+'；玩法：'+(e.before.isRake?'抽水':'不抽水')+' → '+(e.after.isRake?'抽水':'不抽水');item.append(changes);}$('history-list').append(item);});}
 function csvCell(value){let v=String(value??'');if(typeof value==='string'&&/^[\s]*[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"';}
-function historyCSV(){const header=['房間','序號','香港時間','操作','收款玩家','付款玩家','中馬','槓上自摸','來源'];for(let i=1;i<=4;i++)header.push('玩家'+i+'名稱','玩家'+i+'變動','玩家'+i+'結算後積分');header.push('抽水變動','抽水箱結餘','操作前設定','操作後設定');const rows=[header];for(const e of state.history||[]){const row=[state.game,e.revision,hkTime(e.time),logTitle(e),e.player===null?'':e.before.names[e.player],e.payer===null?'':e.before.names[e.payer],e.horses,e.kongWin?'有':'冇',e.source];for(let i=0;i<4;i++)row.push(e.after.names[i],e.after.scores[i]-e.before.scores[i],e.after.scores[i]);row.push(e.after.pot-e.before.pot,e.after.pot,JSON.stringify({names:e.before.names,isRake:e.before.isRake,rules:e.before.rules}),JSON.stringify({names:e.after.names,isRake:e.after.isRake,rules:e.after.rules}));rows.push(row);}return '\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');}
+function historyCSV(){const header=['房間','序號','香港時間','操作','收款/動作玩家','付款/得益玩家','中馬','槓上自摸','來源'];for(let i=1;i<=4;i++)header.push('玩家'+i+'名稱','玩家'+i+'變動','玩家'+i+'結算後積分');header.push('抽水變動','抽水箱結餘','操作前設定','操作後設定');const rows=[header];for(const e of state.history||[]){const row=[state.game,e.revision,hkTime(e.time),logTitle(e),e.player===null?'':e.before.names[e.player],e.payer===null?'':e.before.names[e.payer],e.horses,e.kongWin?'有':'冇',e.source];for(let i=0;i<4;i++)row.push(e.after.names[i],e.after.scores[i]-e.before.scores[i],e.after.scores[i]);row.push(e.after.pot-e.before.pot,e.after.pot,JSON.stringify({names:e.before.names,isRake:e.before.isRake,rules:e.before.rules}),JSON.stringify({names:e.after.names,isRake:e.after.isRake,rules:e.after.rules}));rows.push(row);}return '\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');}
 function exportHistory(){if(!canEdit)return;const blob=new Blob([historyCSV()],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='跑馬仔紀錄-'+new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Hong_Kong'})+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 
 window.addEventListener('storage',e=>{if(!isPhoneRole&&roomStarted&&e.key===roomStorageKey){canEdit=false;ready=false;peer?.destroy();status('資料由另一分頁更新，請重新整理恢復最新房間');$('feedback').textContent='已停止修改，避免覆蓋另一分頁資料';renderControls();}});
