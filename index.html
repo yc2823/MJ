@@ -146,7 +146,7 @@
     .wizard-score {font-size:clamp(26px,6vw,40px);}
     #wizard-note {font-size:15px;line-height:1.5;margin:14px 0;}
     
-    /* 剛剛輸入紀錄及取消按鈕 */
+    /* 剛剛輸入紀錄與取消按鈕樣式 */
     #recent-log-box {
       margin-top: 14px;
       padding: 10px 14px;
@@ -186,29 +186,7 @@
     #results-btn,#options-btn {display:none!important;}
     #room-toolbar {position:fixed;top:0;left:0;right:0;z-index:110;display:flex;gap:5px;justify-content:center;padding:calc(5px + env(safe-area-inset-top)) 6px 5px;background:#121212;}
     #room-toolbar button {flex:1;max-width:150px;min-width:0;min-height:44px;border:0;border-radius:8px;background:#2c2c2e;color:white;font-size:13px;padding:5px;}
-    
     dialog {margin:auto;background:#1c1c1e;color:white;border:1px solid #555;border-radius:16px;padding:20px;width:min(94vw,600px);max-height:88dvh;overflow:auto;}
-    
-    /* 專門放大「操作紀錄」視窗 */
-    #history-menu {
-      width: min(96vw, 880px);
-      max-height: 92dvh;
-      padding: 24px;
-    }
-    #history-menu h2 {
-      font-size: 26px;
-      margin-bottom: 14px;
-    }
-    #history-menu .history-entry {
-      font-size: 16px;
-      line-height: 1.7;
-      padding: 16px 0;
-    }
-    #history-menu .history-entry strong {
-      font-size: 18px;
-      color: #ffd60a;
-    }
-
     input[type=password],input[type=number] {width:100%;min-height:48px;font-size:18px;background:#2c2c2e;color:white;border:1px solid #555;border-radius:8px;padding:10px;margin-top:10px;}
     #ipad-view {padding-top:calc(60px + env(safe-area-inset-top));}
     .board-header {padding:10px;}
@@ -408,6 +386,7 @@ function renderControls(){
    $('wizard-title').textContent='';
    state.names.forEach((n,i)=>button(n,()=>{selectedPlayer=i;payer=null;horseCount=0;customAmount=0;$('kong-win').checked=false;$('feedback').textContent='';wizardGo('action');},state.scores[i]));
    
+   // 檢查是否有最新一手計分紀錄
    const logs=state.history||[];
    const lastLog=[...logs].reverse().find(l=>l.kind==='action');
    if(lastLog){
@@ -522,6 +501,7 @@ async function accept(c,m){
      const targetIdx=logs.map(l=>l.id).lastIndexOf(m.targetId);
      if(targetIdx===-1)throw Error('搵唔到要撤銷嘅紀錄');
      const targetLog=logs[targetIdx];
+     // 將分數與水箱復原回該動作前狀態
      state.scores=targetLog.before.scores.slice();
      state.pot=targetLog.before.pot;
    }else if(m.kind==='settings'){
@@ -572,7 +552,7 @@ function startChallenge(c){const previous=authSessions.get(c)||{};const session=
 const recentAuthAttempts=[];
 async function verifyAuth(c,m){const session=authSessions.get(c);if(!session||session.busy)return;const now=Date.now();while(recentAuthAttempts.length&&recentAuthAttempts[0]<now-60000)recentAuthAttempts.shift();if(now<session.nextTry||recentAuthAttempts.length>=20){send(c,{type:'AUTH_RESULT',ok:false,message:'嘗試太密，請稍後再試'});return;}session.busy=true;recentAuthAttempts.push(now);session.nextTry=now+2000;const nonce=session.nonce;session.nonce=null;let ok=false;try{ok=!!nonce&&now-session.issued<120000&&sameProof(m.proof,await proofFor(roomSecret.key,nonce,state.game));}catch(e){}if(authSessions.get(c)!==session)return;session.busy=false;if(ok){session.editor=true;send(c,{type:'AUTH_RESULT',ok:true});send(c,{type:'STATE',state:snapshot(c)});}else{startChallenge(c);send(c,{type:'AUTH_RESULT',ok:false,message:'密碼唔正確或驗證已過期，請再試'});}}
 function openUnlock(){if(!isPhoneRole||canEdit)return;$('unlock-feedback').textContent='';$('unlock-menu').showModal();}
-async function unlockRoom(){if(authBusy)return;if(!ready||!conn?.open||!authChallenge){$('unlock-feedback').textContent='請等房間連線完成';return;}const password=$('unlock-password').value;if(password.length<6||password.length>128){$('unlock-feedback').textContent='請輸入房間密碼';return;}authBusy=true;$('unlock-submit').disabled=true;$('unlock-feedback').textContent='驗證中…';const challenge=authChallenge;try{const key=await deriveKey(password,challenge.salt);const proof=await proofFor(key,challenge.nonce,challenge.game);if(!conn?.open||challenge!==authChallenge)throw Error('連線已改變，請再試');send(conn,{type:'AUTH',proof});setTimeout(()=>{if(authBusy){authBusy=false;$('unlock-submit').disabled=false;$('unlock-feedback').textContent='驗證逾時，請再試';}},10000);}catch(e){authBusy=false;$('unlock-submit').disabled=false;$('unlock-feedback').textContent=e.message;}}}
+async function unlockRoom(){if(authBusy)return;if(!ready||!conn?.open||!authChallenge){$('unlock-feedback').textContent='請等房間連線完成';return;}const password=$('unlock-password').value;if(password.length<6||password.length>128){$('unlock-feedback').textContent='請輸入房間密碼';return;}authBusy=true;$('unlock-submit').disabled=true;$('unlock-feedback').textContent='驗證中…';const challenge=authChallenge;try{const key=await deriveKey(password,challenge.salt);const proof=await proofFor(key,challenge.nonce,challenge.game);if(!conn?.open||challenge!==authChallenge)throw Error('連線已改變，請再試');send(conn,{type:'AUTH',proof});setTimeout(()=>{if(authBusy){authBusy=false;$('unlock-submit').disabled=false;$('unlock-feedback').textContent='驗證逾時，請再試';}},10000);}catch(e){authBusy=false;$('unlock-submit').disabled=false;$('unlock-feedback').textContent=e.message;}}
 function updateRoomUI(){if(!roomStarted)return;$('room-toolbar').classList.remove('hidden');$('unlock-btn').classList.toggle('hidden',canEdit||!isPhoneRole);$('history-btn').classList.toggle('hidden',!canEdit);$('ipad-view').classList.toggle('hidden',!boardMode);$('iphone-view').classList.toggle('hidden',boardMode);renderBoard();if($('history-menu').open){if(canEdit)renderHistory();else $('history-menu').close();}}
 function toggleBoard(){if(!roomStarted)return;boardMode=!boardMode;wizardHome();renderControls();}
 function renderQR(){if(isPhoneRole){const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('join',hostPeerId);shareURL=url.href;}$('room-link').textContent=shareURL||'連線準備中…';$('room-link').href=shareURL||'#';$('room-qrcode').replaceChildren();if(shareURL&&typeof QRCode!=='undefined')new QRCode($('room-qrcode'),{text:shareURL,width:220,height:220});}
