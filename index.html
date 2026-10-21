@@ -141,10 +141,46 @@
     #wizard-title:empty {display:none;}
     #wizard-buttons {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
     #wizard-buttons .opt-btn {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:clamp(64px,14dvh,110px);padding:12px 6px;font-size:24px;}
-    #wizard-buttons[data-step="home"] {margin-top:20px;}
-    #wizard-buttons[data-step="home"] .opt-btn {min-height:clamp(100px,27dvh,220px);}
+    #wizard-buttons[data-step="home"] {margin-top:16px;}
+    #wizard-buttons[data-step="home"] .opt-btn {min-height:clamp(90px,24dvh,190px);}
     .wizard-score {font-size:clamp(26px,6vw,40px);}
     #wizard-note {font-size:15px;line-height:1.5;margin:14px 0;}
+    
+    /* 剛剛輸入紀錄與取消按鈕樣式 */
+    #recent-log-box {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #1c1c1e;
+      border: 1px solid #333;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #recent-log-text {
+      font-size: 13px;
+      color: #ffd60a;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .btn-undo {
+      background: #3a2e18;
+      border: 1px solid #ff9f0a;
+      color: #ff9f0a;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-undo:active {
+      background: #ff9f0a;
+      color: #000;
+    }
+
     @media(orientation:landscape) and (max-height:500px){#wizard-buttons {grid-template-columns:repeat(4,minmax(0,1fr));}#wizard-buttons .opt-btn,#wizard-buttons[data-step="home"] .opt-btn {min-height:70px;font-size:20px;}}
     @media(orientation:landscape) and (max-height:500px){#wizard-nav {margin:4px 0;}#wizard-title {margin:6px 0;font-size:20px;}#wizard-note {margin:6px 0;font-size:13px;}}
     #results-btn,#options-btn {display:none!important;}
@@ -220,7 +256,22 @@
   </div>
 
   <!-- 3. iPhone 控制端 -->
-  <div id="iphone-view" class="hidden"><div style="color:#30d158;text-align:center"><span id="phone-status">連線中…</span> · <span id="phone-mode-text"></span></div><div id="wizard-nav"><button class="opt-btn" onclick="wizardBack()">‹ 返回</button><span id="wizard-player"></span></div><h2 id="wizard-title"></h2><div id="wizard-buttons" class="btn-group"></div><p id="wizard-note" class="hint"></p><p id="feedback" role="status"></p><input id="kong-win" type="checkbox" hidden></div>
+  <div id="iphone-view" class="hidden">
+    <div style="color:#30d158;text-align:center"><span id="phone-status">連線中…</span> · <span id="phone-mode-text"></span></div>
+    <div id="wizard-nav"><button class="opt-btn" onclick="wizardBack()">‹ 返回</button><span id="wizard-player"></span></div>
+    <h2 id="wizard-title"></h2>
+    <div id="wizard-buttons" class="btn-group"></div>
+    
+    <!-- 剛剛輸入紀錄及取消按鈕 -->
+    <div id="recent-log-box" class="hidden">
+      <div id="recent-log-text"></div>
+      <button type="button" class="btn-undo" id="btn-undo-action" onclick="undoLastAction()">↩ 取消上一手</button>
+    </div>
+
+    <p id="wizard-note" class="hint"></p>
+    <p id="feedback" role="status"></p>
+    <input id="kong-win" type="checkbox" hidden>
+  </div>
 
 <script>
 'use strict';
@@ -299,7 +350,7 @@ function renderBoard(){ $('board-mode-tag').textContent='跑馬仔計分板 · '
 function resetGame(){if(!canEdit)return;wizardHome();$('password-setup').classList.add('hidden');$('ipad-view').classList.add('hidden');state.names.forEach((n,i)=>$('p-name-'+i).value=n);toggleRake(state.isRake);$('iphone-view').classList.add('hidden');$('setup-view').classList.remove('hidden');}
 
 let wizardStep='home',wizardHistory=[];
-const ACTION_NAMES={win:'自摸',ming:'明槓',an:'暗槓',bu:'補槓',rob:'搶槓',chase:'被追牌',chase_normal:'普通追牌',chase_wild:'百搭追牌',special_win:'特別糊牌'};
+const ACTION_NAMES={win:'自摸',ming:'明槓',an:'暗槓',bu:'補槓',rob:'搶槓',chase:'被追牌',chase_normal:'普通追牌',chase_wild:'百搭追牌',special_win:'特別糊牌',undo:'撤銷上一手'};
 function wizardGo(step){wizardHistory.push(wizardStep);wizardStep=step;renderControls();}
 function wizardBack(){if(pending)return;wizardStep=wizardHistory.pop()||'home';$('feedback').textContent='';renderControls();}
 function wizardHome(){wizardStep='home';wizardHistory=[];selectedPlayer=payer=null;horseCount=0;customAmount=0;$('kong-win').checked=false;}
@@ -311,69 +362,111 @@ function setAction(a){
 }
 function wizardFinish(){if(pending||!canEdit)return;if(!ready){$('feedback').textContent='未同步，未有入帳。請等連線後再揀。';return;}wizardGo('sending');submitAction();}
 
+function undoLastAction(){
+  if(!canEdit||!ready||pending){$('feedback').textContent='無法撤銷，請等同步完成';return;}
+  const logs=state.history||[];
+  const lastActionLog=[...logs].reverse().find(l=>l.kind==='action');
+  if(!lastActionLog){
+    $('feedback').textContent='未有可撤銷嘅紀錄';
+    return;
+  }
+  const summary=logTitle(lastActionLog);
+  if(confirm('確定撤銷上一手「'+summary+'」？分數同抽水箱會返回該動作之前。')){
+    submitCommand({kind:'undo',targetId:lastActionLog.id});
+  }
+}
+
 function renderControls(){
  updateRoomUI();if($('results-menu').open)renderResults();$('phone-mode-text').textContent=state.isRake?'抽水版':'不抽水版';
  $('wizard-nav').classList.toggle('hidden',wizardStep==='home');$('wizard-nav').querySelector('button').disabled=!!pending;$('wizard-player').textContent=selectedPlayer===null?'':state.names[selectedPlayer]+(wizardStep==='action'?'':' · '+ACTION_NAMES[currentAction]);
  $('wizard-buttons').replaceChildren();$('wizard-buttons').dataset.step=wizardStep;$('wizard-note').textContent='';const rules={...RULES,...state.rules};
  function button(label,callback,score,disabled=false){const b=document.createElement('button');b.type='button';b.className='opt-btn';const t=document.createElement('span');t.textContent=label;b.append(t);if(score!==undefined){const v=document.createElement('span');v.className='wizard-score '+(score>0?'score-pos':score<0?'score-neg':'score-zero');v.textContent=(score<0?'−':score>0?'+':'')+'$'+Math.abs(score);b.append(v);}b.disabled=disabled||!!pending||!canEdit;b.onclick=callback;$('wizard-buttons').append(b);}
 
- if(wizardStep==='home'){$('wizard-title').textContent='';state.names.forEach((n,i)=>button(n,()=>{selectedPlayer=i;payer=null;horseCount=0;customAmount=0;$('kong-win').checked=false;$('feedback').textContent='';wizardGo('action');},state.scores[i]));}
- else if(wizardStep==='action'){
-   $('wizard-title').textContent='揀結算動作';
-   const mainActions=['win','ming','an','bu','rob','chase','special_win'];
-   mainActions.forEach(a=>{
-     button(ACTION_NAMES[a],()=>setAction(a));
-     if(a==='win'){
-       const winBtn = $('wizard-buttons').lastElementChild;
-       if(winBtn){
-         // 佔滿一行（跨兩欄），高度為1.5倍
-         winBtn.style.gridColumn = 'span 2';
-         winBtn.style.minHeight = 'clamp(96px, 21dvh, 165px)';
-         winBtn.style.fontSize = '28px';
-       }
+ if(wizardStep==='home'){
+   $('wizard-title').textContent='';
+   state.names.forEach((n,i)=>button(n,()=>{selectedPlayer=i;payer=null;horseCount=0;customAmount=0;$('kong-win').checked=false;$('feedback').textContent='';wizardGo('action');},state.scores[i]));
+   
+   // 檢查是否有最新一手計分紀錄
+   const logs=state.history||[];
+   const lastLog=[...logs].reverse().find(l=>l.kind==='action');
+   if(lastLog){
+     $('recent-log-box').classList.remove('hidden');
+     const names=lastLog.before.names;
+     let desc='';
+     if(lastLog.action==='chase_normal') desc='被追牌 '+names[lastLog.player]+'（每家收$10）';
+     else if(lastLog.action==='chase_wild') desc='被追牌 '+names[lastLog.player]+' ➔ '+names[lastLog.payer]+'（$30）';
+     else if(lastLog.action==='special_win') desc='特別糊牌 '+names[lastLog.player]+'（每家收 $'+lastLog.amount+'）';
+     else {
+       const changes=names.map((n,i)=>{
+         const d=lastLog.after.scores[i]-lastLog.before.scores[i];
+         return d!==0?(n+' '+signed(d)):null;
+       }).filter(Boolean).join('，');
+       desc=logTitle(lastLog)+'（'+changes+'）';
      }
-   });
+     $('recent-log-text').innerHTML='<strong>上一手：</strong>'+desc;
+     $('btn-undo-action').disabled=!!pending||!canEdit;
+   }else{
+     $('recent-log-box').classList.add('hidden');
+   }
  }
- else if(wizardStep==='chase_type'){
-   $('wizard-title').textContent='揀追牌種類';
-   button('普通追牌 (每家收$'+rules.chaseNormal+')',()=>{
-     currentAction='chase_normal';
-     wizardFinish();
-   });
-   button('百搭追牌 (一位收$'+rules.chaseWild+')',()=>{
-     currentAction='chase_wild';
-     wizardGo('chase_winner');
-   });
-   $('wizard-note').textContent='普通追牌：被追者給其餘三家每人 $'+rules.chaseNormal+'；百搭追牌：給其中一位追牌者 $'+rules.chaseWild+'。';
+ else {
+   $('recent-log-box').classList.add('hidden');
+   if(wizardStep==='action'){
+     $('wizard-title').textContent='揀結算動作';
+     const mainActions=['win','ming','an','bu','rob','chase','special_win'];
+     mainActions.forEach(a=>{
+       button(ACTION_NAMES[a],()=>setAction(a));
+       if(a==='win'){
+         const winBtn = $('wizard-buttons').lastElementChild;
+         if(winBtn){
+           winBtn.style.gridColumn = 'span 2';
+           winBtn.style.minHeight = 'clamp(96px, 21dvh, 165px)';
+           winBtn.style.fontSize = '28px';
+         }
+       }
+     });
+   }
+   else if(wizardStep==='chase_type'){
+     $('wizard-title').textContent='揀追牌種類';
+     button('普通追牌 (每家收$'+rules.chaseNormal+')',()=>{
+       currentAction='chase_normal';
+       wizardFinish();
+     });
+     button('百搭追牌 (一位收$'+rules.chaseWild+')',()=>{
+       currentAction='chase_wild';
+       wizardGo('chase_winner');
+     });
+     $('wizard-note').textContent='普通追牌：被追者給其餘三家每人 $'+rules.chaseNormal+'；百搭追牌：給其中一位追牌者 $'+rules.chaseWild+'。';
+   }
+   else if(wizardStep==='chase_winner'){
+     $('wizard-title').textContent='揀追牌得益者 (收款玩家)';
+     state.names.forEach((n,i)=>button(n,()=>{payer=i;wizardFinish();},state.scores[i],i===selectedPlayer));
+     $('wizard-note').textContent='收款者會獲得 $'+rules.chaseWild+'，被追者支付 $'+rules.chaseWild+'。';
+   }
+   else if(wizardStep==='special_amount'){
+     $('wizard-title').textContent='輸入每家需付金額';
+     const container=document.createElement('div');
+     container.style.cssText='grid-column:1/-1;display:flex;flex-direction:column;gap:12px;';
+     const input=document.createElement('input');
+     input.type='number';input.inputMode='numeric';input.placeholder='金額 (每家付)';input.id='special-amt-input';
+     input.style.cssText='width:100%;min-height:54px;font-size:22px;background:#2c2c2e;color:white;border:1px solid #777;border-radius:10px;padding:12px;text-align:center;';
+     const confirmBtn=document.createElement('button');
+     confirmBtn.type='button';confirmBtn.className='submit-btn';confirmBtn.textContent='確認收取 (向每家收取)';
+     confirmBtn.onclick=()=>{
+       const val=parseInt(input.value,10);
+       if(!val||val<=0){$('feedback').textContent='請輸入有效金額';return;}
+       customAmount=val;
+       wizardFinish();
+     };
+     container.append(input,confirmBtn);
+     $('wizard-buttons').append(container);
+     $('wizard-note').textContent=state.names[selectedPlayer]+' 將向其餘三家各收取該金額（共收 3 倍）。';
+   }
+   else if(wizardStep==='payer'){$('wizard-title').textContent=currentAction==='rob'?'揀被搶者（包晒）':'揀被槓玩家';state.names.forEach((n,i)=>button(n,()=>{payer=i;wizardGo(currentAction==='rob'?'horse':'kong');},state.scores[i],i===selectedPlayer));$('wizard-note').textContent=currentAction==='ming'?'被槓者一人付 $'+rules.ming:'被搶者付 $'+rules.rob+'＋每馬 $'+rules.robHorse;}
+   else if(wizardStep==='kong'){$('wizard-title').textContent='有冇槓上自摸？';button('冇，只計'+ACTION_NAMES[currentAction],()=>{$('kong-win').checked=false;horseCount=0;wizardFinish();});button('有，再揀中馬隻數',()=>{$('kong-win').checked=true;wizardGo('horse');});$('wizard-note').textContent='揀「冇」即時計槓錢；揀「有」會加自摸。'+(currentAction==='ming'?'出槓者一人包晒，另外兩家唔使付。':'另外三家每家都要付。')+'';}
+   else if(wizardStep==='horse'){$('wizard-title').textContent='揀中馬隻數';for(let i=0;i<=5;i++)button(i+' 隻',()=>{horseCount=i;wizardFinish();});$('wizard-note').textContent='揀好即時入帳並返回玩家首頁。'+(currentAction==='rob'?'被搶者包底數 $'+rules.rob+'；每馬 $'+rules.robHorse:currentAction==='ming'?'出槓者包槓錢 $'+rules.ming+'＋自摸底數 $'+(rules.win*3)+'；每馬 $'+(rules.horse*3):'每家底數 $'+rules.win+'；每馬每家 $'+rules.horse)+(state.isRake?'；每馬抽 $'+rules.rake:'；不抽水');}
+   else {$('wizard-title').textContent=pending?'正在入帳…':'未完成入帳';if(!pending)button('重試入帳',()=>submitAction());$('wizard-note').textContent='收到確認後會自動返回玩家首頁。';}
  }
- else if(wizardStep==='chase_winner'){
-   $('wizard-title').textContent='揀追牌得益者 (收款玩家)';
-   state.names.forEach((n,i)=>button(n,()=>{payer=i;wizardFinish();},state.scores[i],i===selectedPlayer));
-   $('wizard-note').textContent='收款者會獲得 $'+rules.chaseWild+'，被追者支付 $'+rules.chaseWild+'。';
- }
- else if(wizardStep==='special_amount'){
-   $('wizard-title').textContent='輸入每家需付金額';
-   const container=document.createElement('div');
-   container.style.cssText='grid-column:1/-1;display:flex;flex-direction:column;gap:12px;';
-   const input=document.createElement('input');
-   input.type='number';input.inputMode='numeric';input.placeholder='金額 (每家付)';input.id='special-amt-input';
-   input.style.cssText='width:100%;min-height:54px;font-size:22px;background:#2c2c2e;color:white;border:1px solid #777;border-radius:10px;padding:12px;text-align:center;';
-   const confirmBtn=document.createElement('button');
-   confirmBtn.type='button';confirmBtn.className='submit-btn';confirmBtn.textContent='確認收取 (向每家收取)';
-   confirmBtn.onclick=()=>{
-     const val=parseInt(input.value,10);
-     if(!val||val<=0){$('feedback').textContent='請輸入有效金額';return;}
-     customAmount=val;
-     wizardFinish();
-   };
-   container.append(input,confirmBtn);
-   $('wizard-buttons').append(container);
-   $('wizard-note').textContent=state.names[selectedPlayer]+' 將向其餘三家各收取該金額（共收 3 倍）。';
- }
- else if(wizardStep==='payer'){$('wizard-title').textContent=currentAction==='rob'?'揀被搶者（包晒）':'揀被槓玩家';state.names.forEach((n,i)=>button(n,()=>{payer=i;wizardGo(currentAction==='rob'?'horse':'kong');},state.scores[i],i===selectedPlayer));$('wizard-note').textContent=currentAction==='ming'?'被槓者一人付 $'+rules.ming:'被搶者付 $'+rules.rob+'＋每馬 $'+rules.robHorse;}
- else if(wizardStep==='kong'){$('wizard-title').textContent='有冇槓上自摸？';button('冇，只計'+ACTION_NAMES[currentAction],()=>{$('kong-win').checked=false;horseCount=0;wizardFinish();});button('有，再揀中馬隻數',()=>{$('kong-win').checked=true;wizardGo('horse');});$('wizard-note').textContent='揀「冇」即時計槓錢；揀「有」會加自摸。'+(currentAction==='ming'?'出槓者一人包晒，另外兩家唔使付。':'另外三家每家都要付。')+'';}
- else if(wizardStep==='horse'){$('wizard-title').textContent='揀中馬隻數';for(let i=0;i<=5;i++)button(i+' 隻',()=>{horseCount=i;wizardFinish();});$('wizard-note').textContent='揀好即時入帳並返回玩家首頁。'+(currentAction==='rob'?'被搶者包底數 $'+rules.rob+'；每馬 $'+rules.robHorse:currentAction==='ming'?'出槓者包槓錢 $'+rules.ming+'＋自摸底數 $'+(rules.win*3)+'；每馬 $'+(rules.horse*3):'每家底數 $'+rules.win+'；每馬每家 $'+rules.horse)+(state.isRake?'；每馬抽 $'+rules.rake:'；不抽水');}
- else {$('wizard-title').textContent=pending?'正在入帳…':'未完成入帳';if(!pending)button('重試入帳',()=>submitAction());$('wizard-note').textContent='收到確認後會自動返回玩家首頁。';}
 }
 
 function selection(){return {action:currentAction,player:selectedPlayer,payer,horses:horseCount,amount:customAmount,kongWin:$('kong-win').checked};}
@@ -390,7 +483,44 @@ async function accept(c,m){
  if(state.seen.includes(m.id)){send(c,{type:'ACK',id:m.id,state});return;}
  if(typeof m.id!=='string'||m.id.length>100)return;
  if(m.game!==state.game||m.revision!==state.revision){send(c,{type:'REJECT',id:m.id,message:'分數或設定已更新，請核對後再送出',state});return;}
- const previousState=structuredClone(state);try{const before={names:state.names.slice(),scores:state.scores.slice(),pot:state.pot,isRake:state.isRake,rules:{...RULES,...state.rules}};if(m.kind==='rules'){if(!validRules(m.rules))throw Error('計分設定有誤');state.rules=Object.fromEntries(Object.keys(RULES).map(k=>[k,m.rules[k]]));}else if(m.kind==='reset'){state.scores=[0,0,0,0];state.pot=0;}else if(m.kind==='action'){const r=calculate(state,m);state.scores=state.scores.map((v,i)=>v+r.delta[i]);state.pot+=r.pot;}else if(m.kind==='settings'){const q=m.config;if(!q||typeof q.isRake!=='boolean'||!Array.isArray(q.names)||q.names.length!==4||!q.names.every(n=>typeof n==='string'&&n.length>0&&n.length<=40))throw Error('設定有誤');state.names=q.names.slice();state.isRake=q.isRake;}else throw Error('未知指令');state.revision++;state.seen.push(m.id);appendLog(m,before,c===localChannel?'房主':'已解鎖裝置');persist();broadcast();send(c,{type:'ACK',id:m.id,state});}catch(e){state=previousState;send(c,{type:'REJECT',id:m.id,message:e.message,state});}
+ const previousState=structuredClone(state);
+ try{
+   const before={names:state.names.slice(),scores:state.scores.slice(),pot:state.pot,isRake:state.isRake,rules:{...RULES,...state.rules}};
+   if(m.kind==='rules'){
+     if(!validRules(m.rules))throw Error('計分設定有誤');
+     state.rules=Object.fromEntries(Object.keys(RULES).map(k=>[k,m.rules[k]]));
+   }else if(m.kind==='reset'){
+     state.scores=[0,0,0,0];
+     state.pot=0;
+   }else if(m.kind==='action'){
+     const r=calculate(state,m);
+     state.scores=state.scores.map((v,i)=>v+r.delta[i]);
+     state.pot+=r.pot;
+   }else if(m.kind==='undo'){
+     const logs=state.history||[];
+     const targetIdx=logs.map(l=>l.id).lastIndexOf(m.targetId);
+     if(targetIdx===-1)throw Error('搵唔到要撤銷嘅紀錄');
+     const targetLog=logs[targetIdx];
+     // 將分數與水箱復原回該動作前狀態
+     state.scores=targetLog.before.scores.slice();
+     state.pot=targetLog.before.pot;
+   }else if(m.kind==='settings'){
+     const q=m.config;
+     if(!q||typeof q.isRake!=='boolean'||!Array.isArray(q.names)||q.names.length!==4||!q.names.every(n=>typeof n==='string'&&n.length>0&&n.length<=40))throw Error('設定有誤');
+     state.names=q.names.slice();
+     state.isRake=q.isRake;
+   }else throw Error('未知指令');
+   
+   state.revision++;
+   state.seen.push(m.id);
+   appendLog(m,before,c===localChannel?'房主':'已解鎖裝置');
+   persist();
+   broadcast();
+   send(c,{type:'ACK',id:m.id,state});
+ }catch(e){
+   state=previousState;
+   send(c,{type:'REJECT',id:m.id,message:e.message,state});
+ }
 }
 
 function status(t){$('phone-status').textContent=t;$('conn-status').textContent=t;}
@@ -448,7 +578,7 @@ function appendLog(m,before,source){
 }
 
 function hkTime(iso){return new Date(iso).toLocaleString('zh-HK',{timeZone:'Asia/Hong_Kong',hour12:false});}
-function logTitle(e){return e.kind==='action'?ACTION_NAMES[e.action]+(e.kongWin?'＋槓上自摸':''):({reset:'分數歸零',rules:'修改計分設定',settings:'修改玩家／玩法',opening:'開始紀錄（沿用當時分數）'}[e.kind]||e.kind);}
+function logTitle(e){return e.kind==='action'?ACTION_NAMES[e.action]+(e.kongWin?'＋槓上自摸':''):({reset:'分數歸零',rules:'修改計分設定',settings:'修改玩家／玩法',opening:'開始紀錄（沿用當時分數）',undo:'撤銷上一手'}[e.kind]||e.kind);}
 function logDetails(e){
   const names=e.before.names;
   let rolePrefix='';
