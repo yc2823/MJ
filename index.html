@@ -8,10 +8,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #121212; color: #f5f5f7; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+    body { background: #121212; color: #f5f5f7; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-x: hidden; }
     .hidden { display: none !important; }
 
-    /* 設定開局介面 (iPad / iPhone 通用) */
+    /* 設定開局介面 */
     #setup-view { margin: 24px auto; background: #1c1c1e; padding: 20px; border-radius: 16px; width: calc(100% - 24px); max-width: 440px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
     .setup-title { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: bold; }
     .form-group { margin-bottom: 16px; }
@@ -24,30 +24,87 @@
     .mode-btn.active { border-color: #34c759; background: #1e3a24; color: #30d158; }
     .btn-start { width: 100%; padding: 15px 10px; background: #34c759; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; margin-top: 10px; cursor: pointer; }
 
-    /* iPad 看板介面 */
-    #ipad-view { width: 96vw; height: 100dvh; display: flex; flex-direction: column; padding: calc(60px + env(safe-area-inset-top)) 10px 10px; }
-    .board-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #1c1c1e; border-radius: 14px; margin-bottom: 12px; }
-    .board-header h2 { font-size: 20px; }
-    .grid-container { display: grid; gap: 14px; flex: 1; }
+    /* 計分看板介面 */
+    #ipad-view {
+      width: 100vw;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: calc(52px + env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .board-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      background: #1c1c1e;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+      gap: 6px;
+    }
+    .board-header-left { display: flex; align-items: center; gap: 8px; }
+    .board-round-badge { background: #ffd60a; color: #000; font-weight: 800; font-size: 13px; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+    .board-header h2 { font-size: 15px; color: #fff; font-weight: 600; white-space: nowrap; }
+    .board-header-right { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8e8e93; white-space: nowrap; }
+    #board-created-time { color: #8e8e93; }
+    #conn-status { color: #ff9f0a; font-weight: 500; }
+
+    /* 看板專用上一手紀錄橫條 */
+    #board-recent-bar {
+      background: #241d08;
+      border: 1px solid rgba(255, 214, 10, 0.3);
+      border-radius: 8px;
+      padding: 4px 10px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #ffd60a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #board-recent-bar span.tag { background: #ffd60a; color: #000; font-weight: bold; font-size: 11px; padding: 1px 4px; border-radius: 3px; }
+
+    .grid-container { display: grid; gap: 8px; flex: 1; min-height: 0; width: 100%; }
     .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    .grid-5 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 100px; }
-    
-    .player-card { background: #1c1c1e; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid #2c2c2e; }
-    .player-name { font-size: 28px; color: #98989d; margin-bottom: 8px; font-weight: 600; text-align: center; }
-    .player-score { font-size: 60px; font-weight: bold; }
+    .grid-5 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr clamp(44px, 8dvh, 70px); }
+
+    .player-card {
+      background: #1c1c1e;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 1.5px solid #2c2c2e;
+      min-height: 0;
+      padding: 4px;
+    }
+    .player-name { font-size: clamp(16px, 2.6vw, 26px); color: #98989d; margin-bottom: 2px; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+    .player-score { font-size: clamp(34px, 7vw, 68px); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
     .score-pos { color: #30d158; }
     .score-neg { color: #ff453a; }
     .score-zero { color: #8e8e93; }
 
-    /* 抽水箱卡片 */
-    .pot-card { grid-column: 1 / span 2; background: #241d08; border: 2px solid #ffd60a; flex-direction: row; justify-content: space-around; padding: 10px 20px; border-radius: 16px; align-items: center; }
-    .pot-title { font-size: 24px; color: #ffd60a; font-weight: bold; }
-    .pot-amount { font-size: 44px; font-weight: bold; color: #ffd60a; }
+    .pot-card { grid-column: 1 / span 2; background: #241d08; border: 1.5px solid #ffd60a; flex-direction: row; justify-content: space-around; padding: 4px 16px; border-radius: 10px; align-items: center; }
+    .pot-title { font-size: clamp(15px, 2.4vw, 22px); color: #ffd60a; font-weight: bold; }
+    .pot-amount { font-size: clamp(24px, 4.5vw, 42px); font-weight: 800; color: #ffd60a; }
 
-    /* iPhone 控制端 */
-    #iphone-view { width: 100%; max-width: 600px; min-height: 100dvh; padding: calc(54px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); }
+    /* iPhone 控制端介面 */
+    #iphone-view {
+      width: 100%;
+      max-width: 600px;
+      min-height: 100dvh;
+      padding: calc(54px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    }
     
-    /* 中間資訊列 (左：局數 | 中：狀態 | 右：建立時間) */
     #status-bar-row {
       display: flex;
       align-items: center;
@@ -58,26 +115,9 @@
       font-size: 13px;
       color: #8e8e93;
     }
-    #game-round-badge {
-      font-weight: bold;
-      color: #ffd60a;
-      background: #2c2c2e;
-      padding: 3px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-    #room-created-time {
-      color: #8e8e93;
-      white-space: nowrap;
-    }
-    #phone-status-wrap {
-      flex: 1;
-      text-align: center;
-      color: #30d158;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    #game-round-badge { font-weight: bold; color: #ffd60a; background: #2c2c2e; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+    #room-created-time { color: #8e8e93; white-space: nowrap; }
+    #phone-status-wrap { flex: 1; text-align: center; color: #30d158; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .ctrl-box { background: #1c1c1e; border-radius: 14px; padding: 8px; margin-bottom: 6px; }
     .ctrl-title { font-size: 12px; color: #8e8e93; margin-bottom: 5px; font-weight: 600; }
@@ -98,24 +138,36 @@
     #wizard-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     #wizard-buttons .opt-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: clamp(64px, 14dvh, 110px); padding: 12px 6px; font-size: 24px; }
     #wizard-buttons[data-step="home"] { margin-top: 8px; }
-    #wizard-buttons[data-step="home"] .opt-btn { min-height: clamp(90px, 24dvh, 190px); }
+    #wizard-buttons[data-step="home"] .opt-btn { min-height: clamp(86px, 22dvh, 180px); }
     .wizard-score { font-size: clamp(26px, 6vw, 40px); }
     #wizard-note { font-size: 15px; line-height: 1.5; margin: 14px 0; }
 
-    /* 上一手紀錄字卡 */
-    #recent-log-box { margin-top: 14px; padding: 10px 14px; background: #1c1c1e; border: 1px solid #333; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    /* 控制端上一手紀錄字卡 */
+    #recent-log-box { margin-top: 12px; padding: 8px 12px; background: #1c1c1e; border: 1px solid #333; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     #recent-log-text { font-size: 13px; color: #ffd60a; line-height: 1.4; overflow-wrap: anywhere; }
-    .btn-undo { background: #3a2e18; border: 1px solid #ff9f0a; color: #ff9f0a; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .btn-undo { background: #3a2e18; border: 1px solid #ff9f0a; color: #ff9f0a; padding: 7px 11px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
     .btn-undo:active { background: #ff9f0a; color: #000; }
 
-    #room-toolbar { position: fixed; top: 0; left: 0; right: 0; z-index: 110; display: flex; gap: 5px; justify-content: center; padding: calc(5px + env(safe-area-inset-top)) 6px 5px; background: #121212; }
-    #room-toolbar button { flex: 1; max-width: 150px; min-width: 0; min-height: 44px; border: 0; border-radius: 8px; background: #2c2c2e; color: white; font-size: 13px; padding: 5px; }
+    /* 頂部工具列 (5 個選項均分) */
+    #room-toolbar { position: fixed; top: 0; left: 0; right: 0; z-index: 110; display: flex; gap: 4px; justify-content: center; padding: calc(5px + env(safe-area-inset-top)) 4px 5px; background: #121212; }
+    #room-toolbar button { flex: 1; max-width: 120px; min-width: 0; min-height: 42px; border: 0; border-radius: 8px; background: #2c2c2e; color: white; font-size: 12.5px; padding: 4px 2px; white-space: nowrap; }
 
     dialog { margin: auto; background: #1c1c1e; color: white; border: 1px solid #555; border-radius: 16px; padding: 20px; width: min(94vw, 600px); max-height: 88dvh; overflow: auto; }
-    #history-menu { width: min(96vw, 880px); max-height: 92dvh; padding: 24px; }
-    #history-menu h2 { font-size: 26px; margin-bottom: 14px; }
+    #history-menu, #stats-menu { width: min(96vw, 880px); max-height: 92dvh; padding: 24px; }
+    #history-menu h2, #stats-menu h2 { font-size: 26px; margin-bottom: 14px; }
     #history-menu .history-entry { font-size: 16px; line-height: 1.7; padding: 16px 0; border-bottom: 1px solid #444; }
     #history-menu .history-entry strong { font-size: 18px; color: #ffd60a; }
+
+    /* 統計彈窗專用樣式 */
+    .stats-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stats-badge-card { background: #2c2c2e; border: 1.5px solid #444; border-radius: 12px; padding: 12px; text-align: center; }
+    .stats-badge-title { font-size: 13px; color: #ffd60a; font-weight: bold; margin-bottom: 4px; }
+    .stats-badge-val { font-size: 18px; font-weight: 800; color: #fff; overflow-wrap: anywhere; }
+    .stats-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
+    .stats-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; }
+    .stats-table th, .stats-table td { padding: 10px 6px; border-bottom: 1px solid #3a3a3c; white-space: nowrap; }
+    .stats-table th { background: #2c2c2e; color: #8e8e93; font-weight: 600; }
+    .stats-table tr:hover td { background: #242426; }
 
     input[type=password], input[type=number] { width: 100%; min-height: 48px; font-size: 18px; background: #2c2c2e; color: white; border: 1px solid #555; border-radius: 8px; padding: 10px; margin-top: 10px; }
     #room-qrcode { background: white; width: fit-content; padding: 14px; margin: 16px auto; }
@@ -134,14 +186,40 @@
     <p class="hint">呢個列表係本機保存。建議每部機獨立開一間房。</p>
   </section>
 
-  <!-- 工具列 -->
+  <!-- 頂部工具列 (5 個選項) -->
   <nav id="room-toolbar" class="hidden">
-    <button onclick="openRoomQR()">連線 QR Code</button>
+    <button onclick="openRoomQR()">連線 QR</button>
+    <button id="stats-btn" onclick="openStats()">📊 統計</button>
     <button id="history-btn" onclick="openHistory()">紀錄</button>
     <button onclick="toggleBoard()">切換顯示</button>
     <button id="unlock-btn" class="hidden" onclick="openUnlock()">解鎖計分</button>
     <button onclick="openOptions()">☰ 選項</button>
   </nav>
+
+  <!-- 統計彈窗 -->
+  <dialog id="stats-menu">
+    <h2>📊 牌局統計分析</h2>
+    <div class="stats-card-grid" id="stats-top-badges"></div>
+    <h3 style="font-size:16px;margin:12px 0 6px;color:#8e8e93;">各家結算動作明細</h3>
+    <div class="stats-table-wrap">
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>玩家</th>
+            <th>自摸</th>
+            <th>槓上自摸</th>
+            <th>搶槓</th>
+            <th>明槓</th>
+            <th>暗槓/補槓</th>
+            <th>被追牌</th>
+            <th>總中馬</th>
+          </tr>
+        </thead>
+        <tbody id="stats-table-body"></tbody>
+      </table>
+    </div>
+    <button class="btn-start" style="margin-top:20px;" onclick="this.closest('dialog').close()">返回</button>
+  </dialog>
 
   <dialog id="room-qr">
     <h2>連線 QR Code</h2>
@@ -227,11 +305,22 @@
     <button type="button" class="btn-start" id="start-btn" onclick="handleStart()">確定開局</button>
   </div>
 
-  <!-- 2. iPad 顯示看板 -->
+  <!-- 2. iPad / 看板顯示介面 -->
   <div id="ipad-view" class="hidden">
     <div class="board-header">
-      <h2 id="board-mode-tag">跑馬仔計分板</h2>
-      <div id="conn-status" style="color: #ff9f0a; font-size: 15px;">等待 iPhone 掃碼連線...</div>
+      <div class="board-header-left">
+        <span id="board-round-badge" class="board-round-badge">第 1 鋪</span>
+        <h2 id="board-mode-tag">跑馬仔計分板</h2>
+      </div>
+      <div class="board-header-right">
+        <span id="board-created-time">建立: --:--</span>
+        <div id="conn-status">等待連線...</div>
+      </div>
+    </div>
+
+    <div id="board-recent-bar" class="hidden">
+      <span class="tag">上一手</span>
+      <span id="board-recent-text">--</span>
     </div>
 
     <div id="board-grid" class="grid-container grid-4">
@@ -247,9 +336,8 @@
     </div>
   </div>
 
-  <!-- 3. iPhone 控制端 -->
+  <!-- 3. iPhone 控制端介面 -->
   <div id="iphone-view" class="hidden">
-    <!-- 中間資訊列：左邊局數，中間連線狀態，右邊房間建立時間 -->
     <div id="status-bar-row">
       <div id="game-round-badge">第 1 鋪</div>
       <div id="phone-status-wrap">
@@ -542,11 +630,86 @@ async function handleStart(){
   }
 }
 
+function computeCurrentRound(){
+  const logs = state.history || [];
+  let currentRound = 1;
+  let subCount = 0;
+  for (const log of logs) {
+    if (log.kind !== 'action') continue;
+    const isMajor = log.action === 'win' || log.action === 'rob' || log.action === 'special_win' || (['ming','an','bu'].includes(log.action) && log.kongWin);
+    if (isMajor) {
+      currentRound++;
+      subCount = 0;
+    } else {
+      subCount++;
+    }
+  }
+  return subCount > 0 ? `第 ${currentRound}.${subCount} 鋪` : `第 ${currentRound} 鋪`;
+}
+
+function getRoundsMap(logs) {
+  const roundMap = {};
+  let currentRound = 1;
+  let subCount = 0;
+
+  for (const e of logs) {
+    if (e.kind === 'action') {
+      const isMajor = e.action === 'win' || e.action === 'rob' || e.action === 'special_win' || (['ming','an','bu'].includes(e.action) && e.kongWin);
+      if (!isMajor) {
+        subCount++;
+        roundMap[e.id] = `第 ${currentRound}.${subCount} 鋪`;
+      } else {
+        roundMap[e.id] = `第 ${currentRound} 鋪`;
+        currentRound++;
+        subCount = 0;
+      }
+    } else {
+      roundMap[e.id] = '';
+    }
+  }
+  return roundMap;
+}
+
+function getLatestActionSummary(){
+  const logs = state.history || [];
+  const lastLog = [...logs].reverse().find(l => l.kind === 'action');
+  if (!lastLog) return null;
+  const names = lastLog.before.names;
+  let desc = '';
+  if (lastLog.action === 'chase_normal') desc = '被追牌 ' + names[lastLog.player] + '（每家收$10）';
+  else if (lastLog.action === 'chase_wild') desc = '被追牌 ' + names[lastLog.player] + ' ➔ ' + names[lastLog.payer] + '（$30）';
+  else if (lastLog.action === 'special_win') desc = '特別糊牌 ' + names[lastLog.player] + '（每家收 $' + lastLog.amount + '）';
+  else {
+    const changes = names.map((n, i) => {
+      const d = lastLog.after.scores[i] - lastLog.before.scores[i];
+      return d !== 0 ? (n + ' ' + signed(d)) : null;
+    }).filter(Boolean).join('，');
+    desc = logTitle(lastLog) + '（' + changes + '）';
+  }
+  return desc;
+}
+
 function renderBoard(){
-  $('board-mode-tag').textContent = '跑馬仔計分板 · ' + (state.isRake ? '抽水版' : '不抽水版');
+  $('board-mode-tag').textContent = '跑馬仔 · ' + (state.isRake ? '抽水版' : '不抽水版');
+  $('board-round-badge').textContent = computeCurrentRound();
+
+  if (state.createdAt) {
+    const t = new Date(state.createdAt).toLocaleTimeString('zh-HK', { timeZone: 'Asia/Hong_Kong', hour: '2-digit', minute: '2-digit', hour12: false });
+    $('board-created-time').textContent = '建立: ' + t;
+  }
+
+  const lastSummary = getLatestActionSummary();
+  if (lastSummary) {
+    $('board-recent-bar').classList.remove('hidden');
+    $('board-recent-text').textContent = lastSummary;
+  } else {
+    $('board-recent-bar').classList.add('hidden');
+  }
+
   $('board-grid').className = 'grid-container ' + (state.isRake ? 'grid-5' : 'grid-4');
   $('pot-card').classList.toggle('hidden', !state.isRake);
   $('pot-score').textContent = '$' + state.pot;
+
   state.names.forEach((n, i) => {
     $('disp-name-' + i).textContent = n;
     const el = $('score-' + i), v = state.scores[i];
@@ -598,57 +761,115 @@ function undoLastAction(){
   }
 }
 
-// 動態計算首頁頂部即時局數顯示
-function computeCurrentRound(){
+/* =========================================
+   統計數據計算與渲染
+   ========================================= */
+function computeStats(){
   const logs = state.history || [];
-  let currentRound = 1;
-  let subCount = 0;
+  const pCount = 4;
+  const stats = Array.from({ length: pCount }, () => ({
+    wins: 0,        // 自摸 (純自摸)
+    kongWins: 0,    // 槓上自摸
+    robWins: 0,     // 搶槓
+    mingKongs: 0,   // 明槓
+    otherKongs: 0,  // 暗槓 + 補槓
+    chased: 0,      // 被追牌
+    totalHorses: 0  // 總中馬
+  }));
+
   for (const log of logs) {
     if (log.kind !== 'action') continue;
-    const isMajor = log.action === 'win' || log.action === 'rob' || log.action === 'special_win' || (['ming','an','bu'].includes(log.action) && log.kongWin);
-    if (isMajor) {
-      currentRound++;
-      subCount = 0;
-    } else {
-      subCount++;
+    const p = log.player;
+    if (p < 0 || p >= pCount) continue;
+
+    if (log.action === 'win') stats[p].wins++;
+    else if (log.action === 'rob') stats[p].robWins++;
+    else if (['ming','an','bu'].includes(log.action)) {
+      if (log.kongWin) stats[p].kongWins++;
+      if (log.action === 'ming') stats[p].mingKongs++;
+      else stats[p].otherKongs++;
+    } else if (log.action === 'chase_normal' || log.action === 'chase_wild') {
+      stats[p].chased++;
+    }
+
+    if (log.horses && Number.isInteger(log.horses)) {
+      stats[p].totalHorses += log.horses;
     }
   }
-  return subCount > 0 ? `第 ${currentRound}.${subCount} 鋪` : `第 ${currentRound} 鋪`;
+
+  return stats;
 }
 
-// 計算歷史紀錄入面每一手對應嘅局數標籤
-function getRoundsMap(logs) {
-  const roundMap = {};
-  let currentRound = 1;
-  let subCount = 0;
+function openStats(){
+  renderStats();
+  $('stats-menu').showModal();
+}
 
-  for (const e of logs) {
-    if (e.kind === 'action') {
-      const isMajor = e.action === 'win' || e.action === 'rob' || e.action === 'special_win' || (['ming','an','bu'].includes(e.action) && e.kongWin);
-      
-      if (!isMajor) {
-        subCount++;
-        roundMap[e.id] = `第 ${currentRound}.${subCount} 鋪`;
-      } else {
-        roundMap[e.id] = `第 ${currentRound} 鋪`;
-        currentRound++;
-        subCount = 0;
-      }
-    } else {
-      roundMap[e.id] = '';
-    }
-  }
-  return roundMap;
+function renderStats(){
+  const stats = computeStats();
+  const names = state.names;
+
+  // 尋找各項最多者（若全為 0 則不特別標示）
+  const findMax = (getter) => {
+    let maxVal = 0;
+    let leaders = [];
+    stats.forEach((s, i) => {
+      const v = getter(s);
+      if (v > maxVal) { maxVal = v; leaders = [names[i]]; }
+      else if (v === maxVal && maxVal > 0) { leaders.push(names[i]); }
+    });
+    return maxVal > 0 ? { val: maxVal, names: leaders.join('、') } : { val: 0, names: '未有' };
+  };
+
+  const topWin = findMax(s => s.wins + s.kongWins);
+  const topHorse = findMax(s => s.totalHorses);
+  const topKong = findMax(s => s.mingKongs + s.otherKongs);
+  const topChased = findMax(s => s.chased);
+
+  // 渲染榮譽卡片
+  $('stats-top-badges').innerHTML = `
+    <div class="stats-badge-card">
+      <div class="stats-badge-title">🏆 自摸王 (${topWin.val} 次)</div>
+      <div class="stats-badge-val">${topWin.names}</div>
+    </div>
+    <div class="stats-badge-card">
+      <div class="stats-badge-title">🐎 中馬王 (${topHorse.val} 隻)</div>
+      <div class="stats-badge-val">${topHorse.names}</div>
+    </div>
+    <div class="stats-badge-card">
+      <div class="stats-badge-title">🀄 槓牌王 (${topKong.val} 次)</div>
+      <div class="stats-badge-val">${topKong.names}</div>
+    </div>
+    <div class="stats-badge-card">
+      <div class="stats-badge-title">🎯 追牌苦主 (${topChased.val} 次)</div>
+      <div class="stats-badge-val">${topChased.names}</div>
+    </div>
+  `;
+
+  // 渲染表格
+  $('stats-table-body').innerHTML = names.map((name, i) => {
+    const s = stats[i];
+    return `
+      <tr>
+        <td style="font-weight:bold;color:#ffd60a;">${name}</td>
+        <td>${s.wins}</td>
+        <td>${s.kongWins}</td>
+        <td>${s.robWins}</td>
+        <td>${s.mingKongs}</td>
+        <td>${s.otherKongs}</td>
+        <td>${s.chased}</td>
+        <td style="font-weight:bold;color:#30d158;">${s.totalHorses}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderControls(){
   updateRoomUI();
   if ($('results-menu').open) renderResults();
+  if ($('stats-menu').open) renderStats();
   
-  // 更新頂部局數
   $('game-round-badge').textContent = computeCurrentRound();
-
-  // 更新建立時間
   if (state.createdAt) {
     const t = new Date(state.createdAt).toLocaleTimeString('zh-HK', { timeZone: 'Asia/Hong_Kong', hour: '2-digit', minute: '2-digit', hour12: false });
     $('room-created-time').textContent = '建立: ' + t;
@@ -689,23 +910,10 @@ function renderControls(){
       wizardGo('action');
     }, state.scores[i]));
 
-    const logs = state.history || [];
-    const lastLog = [...logs].reverse().find(l => l.kind === 'action');
-    if (lastLog) {
+    const lastSummary = getLatestActionSummary();
+    if (lastSummary) {
       $('recent-log-box').classList.remove('hidden');
-      const names = lastLog.before.names;
-      let desc = '';
-      if (lastLog.action === 'chase_normal') desc = '被追牌 ' + names[lastLog.player] + '（每家收$10）';
-      else if (lastLog.action === 'chase_wild') desc = '被追牌 ' + names[lastLog.player] + ' ➔ ' + names[lastLog.payer] + '（$30）';
-      else if (lastLog.action === 'special_win') desc = '特別糊牌 ' + names[lastLog.player] + '（每家收 $' + lastLog.amount + '）';
-      else {
-        const changes = names.map((n, i) => {
-          const d = lastLog.after.scores[i] - lastLog.before.scores[i];
-          return d !== 0 ? (n + ' ' + signed(d)) : null;
-        }).filter(Boolean).join('，');
-        desc = logTitle(lastLog) + '（' + changes + '）';
-      }
-      $('recent-log-text').innerHTML = '<strong>上一手：</strong>' + desc;
+      $('recent-log-text').innerHTML = '<strong>上一手：</strong>' + lastSummary;
       $('btn-undo-action').disabled = !!pending || !canEdit;
     } else {
       $('recent-log-box').classList.add('hidden');
@@ -1136,11 +1344,15 @@ function updateRoomUI(){
   $('room-toolbar').classList.remove('hidden');
   $('unlock-btn').classList.toggle('hidden', canEdit || !isPhoneRole);
   $('history-btn').classList.toggle('hidden', !canEdit);
+  $('stats-btn').classList.toggle('hidden', !canEdit);
   $('ipad-view').classList.toggle('hidden', !boardMode);
   $('iphone-view').classList.toggle('hidden', boardMode);
   renderBoard();
   if ($('history-menu').open) {
     if (canEdit) renderHistory(); else $('history-menu').close();
+  }
+  if ($('stats-menu').open) {
+    if (canEdit) renderStats(); else $('stats-menu').close();
   }
 }
 
@@ -1209,7 +1421,6 @@ function renderHistory(){
     const item = document.createElement('article');
     item.className = 'history-entry';
     
-    // 局數標籤處理
     const roundTag = roundMap[e.id] ? `[${roundMap[e.id]}] ` : '';
     const title = document.createElement('strong');
     title.textContent = roundTag + logTitle(e);
